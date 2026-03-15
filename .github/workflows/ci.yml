@@ -57,6 +57,9 @@ jobs:
       - name: Install Atlas
         uses: ariga/setup-atlas@v0
 
+      - name: Install buf
+        uses: bufbuild/buf-setup-action@v1
+
       - name: Download Go dependencies
         run: go mod download
 
