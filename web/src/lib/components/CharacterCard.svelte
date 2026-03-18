@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Character } from '~/lib/gen/clockkeeper/v1/clockkeeper_pb';
+	import { Team } from '~/lib/gen/clockkeeper/v1/clockkeeper_pb';
 
 	let {
 		character,
@@ -14,36 +15,45 @@
 	} = $props();
 
 	const iconSuffix = $derived(
-		character.team === 'townsfolk' || character.team === 'outsider' ? '_g' :
-		character.team === 'minion' || character.team === 'demon' ? '_e' : ''
+		character.team === Team.TOWNSFOLK || character.team === Team.OUTSIDER ? '_g' :
+		character.team === Team.MINION || character.team === Team.DEMON ? '_e' : ''
 	);
 	const iconUrl = $derived(`/characters/${character.edition}/${character.id}${iconSuffix}.webp`);
 
-	const teamColors: Record<string, string> = {
-		townsfolk: 'border-blue-500/40 bg-blue-950/30',
-		outsider: 'border-cyan-500/40 bg-cyan-950/30',
-		minion: 'border-orange-500/40 bg-orange-950/30',
-		demon: 'border-red-500/40 bg-red-950/30',
-		traveller: 'border-yellow-500/40 bg-yellow-950/30',
-		fabled: 'border-amber-500/40 bg-amber-950/30'
+	const teamColors: Record<number, string> = {
+		[Team.TOWNSFOLK]: 'border-blue-500/40 bg-blue-950/30',
+		[Team.OUTSIDER]: 'border-cyan-500/40 bg-cyan-950/30',
+		[Team.MINION]: 'border-orange-500/40 bg-orange-950/30',
+		[Team.DEMON]: 'border-red-500/40 bg-red-950/30',
+		[Team.TRAVELLER]: 'border-yellow-500/40 bg-yellow-950/30',
+		[Team.FABLED]: 'border-amber-500/40 bg-amber-950/30'
 	};
 
-	const unselectedColors: Record<string, string> = {
-		townsfolk: 'border-blue-500/20 bg-blue-950/10',
-		outsider: 'border-cyan-500/20 bg-cyan-950/10',
-		minion: 'border-orange-500/20 bg-orange-950/10',
-		demon: 'border-red-500/20 bg-red-950/10',
-		traveller: 'border-yellow-500/20 bg-yellow-950/10',
-		fabled: 'border-amber-500/20 bg-amber-950/10'
+	const unselectedColors: Record<number, string> = {
+		[Team.TOWNSFOLK]: 'border-blue-500/20 bg-blue-950/10',
+		[Team.OUTSIDER]: 'border-cyan-500/20 bg-cyan-950/10',
+		[Team.MINION]: 'border-orange-500/20 bg-orange-950/10',
+		[Team.DEMON]: 'border-red-500/20 bg-red-950/10',
+		[Team.TRAVELLER]: 'border-yellow-500/20 bg-yellow-950/10',
+		[Team.FABLED]: 'border-amber-500/20 bg-amber-950/10'
 	};
 
-	const teamBadgeColors: Record<string, string> = {
-		townsfolk: 'bg-blue-500/20 text-blue-300',
-		outsider: 'bg-cyan-500/20 text-cyan-300',
-		minion: 'bg-orange-500/20 text-orange-300',
-		demon: 'bg-red-500/20 text-red-300',
-		traveller: 'bg-yellow-500/20 text-yellow-300',
-		fabled: 'bg-amber-500/20 text-amber-300'
+	const teamBadgeColors: Record<number, string> = {
+		[Team.TOWNSFOLK]: 'bg-blue-500/20 text-blue-300',
+		[Team.OUTSIDER]: 'bg-cyan-500/20 text-cyan-300',
+		[Team.MINION]: 'bg-orange-500/20 text-orange-300',
+		[Team.DEMON]: 'bg-red-500/20 text-red-300',
+		[Team.TRAVELLER]: 'bg-yellow-500/20 text-yellow-300',
+		[Team.FABLED]: 'bg-amber-500/20 text-amber-300'
+	};
+
+	const teamNames: Record<number, string> = {
+		[Team.TOWNSFOLK]: 'Townsfolk',
+		[Team.OUTSIDER]: 'Outsider',
+		[Team.MINION]: 'Minion',
+		[Team.DEMON]: 'Demon',
+		[Team.TRAVELLER]: 'Traveller',
+		[Team.FABLED]: 'Fabled'
 	};
 
 	const colorClass = $derived(
@@ -73,7 +83,7 @@
 			<div class="flex items-center gap-2">
 				<span class="font-medium text-white">{character.name}</span>
 				<span class="rounded px-1.5 py-0.5 text-xs {teamBadgeColors[character.team] ?? 'bg-gray-700 text-gray-300'}">
-					{character.team}
+					{teamNames[character.team] ?? 'Unknown'}
 				</span>
 				{#if character.setup}
 					<span class="rounded bg-yellow-500/20 px-1.5 py-0.5 text-xs text-yellow-300">setup</span>

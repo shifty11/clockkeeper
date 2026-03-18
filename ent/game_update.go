@@ -15,6 +15,7 @@ import (
 	"github.com/loomi-labs/clockkeeper/ent/game"
 	"github.com/loomi-labs/clockkeeper/ent/predicate"
 	"github.com/loomi-labs/clockkeeper/ent/script"
+	"github.com/loomi-labs/clockkeeper/ent/user"
 )
 
 // GameUpdate is the builder for updating Game entities.
@@ -33,6 +34,20 @@ func (_u *GameUpdate) Where(ps ...predicate.Game) *GameUpdate {
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *GameUpdate) SetUpdatedAt(v time.Time) *GameUpdate {
 	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetUserID sets the "user_id" field.
+func (_u *GameUpdate) SetUserID(v int) *GameUpdate {
+	_u.mutation.SetUserID(v)
+	return _u
+}
+
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *GameUpdate) SetNillableUserID(v *int) *GameUpdate {
+	if v != nil {
+		_u.SetUserID(*v)
+	}
 	return _u
 }
 
@@ -130,6 +145,17 @@ func (_u *GameUpdate) SetNillableState(v *game.State) *GameUpdate {
 	return _u
 }
 
+// SetOwnerID sets the "owner" edge to the User entity by ID.
+func (_u *GameUpdate) SetOwnerID(id int) *GameUpdate {
+	_u.mutation.SetOwnerID(id)
+	return _u
+}
+
+// SetOwner sets the "owner" edge to the User entity.
+func (_u *GameUpdate) SetOwner(v *User) *GameUpdate {
+	return _u.SetOwnerID(v.ID)
+}
+
 // SetScript sets the "script" edge to the Script entity.
 func (_u *GameUpdate) SetScript(v *Script) *GameUpdate {
 	return _u.SetScriptID(v.ID)
@@ -138,6 +164,12 @@ func (_u *GameUpdate) SetScript(v *Script) *GameUpdate {
 // Mutation returns the GameMutation object of the builder.
 func (_u *GameUpdate) Mutation() *GameMutation {
 	return _u.mutation
+}
+
+// ClearOwner clears the "owner" edge to the User entity.
+func (_u *GameUpdate) ClearOwner() *GameUpdate {
+	_u.mutation.ClearOwner()
+	return _u
 }
 
 // ClearScript clears the "script" edge to the Script entity.
@@ -199,6 +231,9 @@ func (_u *GameUpdate) check() error {
 			return &ValidationError{Name: "state", err: fmt.Errorf(`ent: validator failed for field "Game.state": %w`, err)}
 		}
 	}
+	if _u.mutation.OwnerCleared() && len(_u.mutation.OwnerIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Game.owner"`)
+	}
 	if _u.mutation.ScriptCleared() && len(_u.mutation.ScriptIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Game.script"`)
 	}
@@ -250,6 +285,35 @@ func (_u *GameUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.State(); ok {
 		_spec.SetField(game.FieldState, field.TypeEnum, value)
+	}
+	if _u.mutation.OwnerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   game.OwnerTable,
+			Columns: []string{game.OwnerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OwnerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   game.OwnerTable,
+			Columns: []string{game.OwnerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.ScriptCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -303,6 +367,20 @@ type GameUpdateOne struct {
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *GameUpdateOne) SetUpdatedAt(v time.Time) *GameUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetUserID sets the "user_id" field.
+func (_u *GameUpdateOne) SetUserID(v int) *GameUpdateOne {
+	_u.mutation.SetUserID(v)
+	return _u
+}
+
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *GameUpdateOne) SetNillableUserID(v *int) *GameUpdateOne {
+	if v != nil {
+		_u.SetUserID(*v)
+	}
 	return _u
 }
 
@@ -400,6 +478,17 @@ func (_u *GameUpdateOne) SetNillableState(v *game.State) *GameUpdateOne {
 	return _u
 }
 
+// SetOwnerID sets the "owner" edge to the User entity by ID.
+func (_u *GameUpdateOne) SetOwnerID(id int) *GameUpdateOne {
+	_u.mutation.SetOwnerID(id)
+	return _u
+}
+
+// SetOwner sets the "owner" edge to the User entity.
+func (_u *GameUpdateOne) SetOwner(v *User) *GameUpdateOne {
+	return _u.SetOwnerID(v.ID)
+}
+
 // SetScript sets the "script" edge to the Script entity.
 func (_u *GameUpdateOne) SetScript(v *Script) *GameUpdateOne {
 	return _u.SetScriptID(v.ID)
@@ -408,6 +497,12 @@ func (_u *GameUpdateOne) SetScript(v *Script) *GameUpdateOne {
 // Mutation returns the GameMutation object of the builder.
 func (_u *GameUpdateOne) Mutation() *GameMutation {
 	return _u.mutation
+}
+
+// ClearOwner clears the "owner" edge to the User entity.
+func (_u *GameUpdateOne) ClearOwner() *GameUpdateOne {
+	_u.mutation.ClearOwner()
+	return _u
 }
 
 // ClearScript clears the "script" edge to the Script entity.
@@ -482,6 +577,9 @@ func (_u *GameUpdateOne) check() error {
 			return &ValidationError{Name: "state", err: fmt.Errorf(`ent: validator failed for field "Game.state": %w`, err)}
 		}
 	}
+	if _u.mutation.OwnerCleared() && len(_u.mutation.OwnerIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Game.owner"`)
+	}
 	if _u.mutation.ScriptCleared() && len(_u.mutation.ScriptIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Game.script"`)
 	}
@@ -550,6 +648,35 @@ func (_u *GameUpdateOne) sqlSave(ctx context.Context) (_node *Game, err error) {
 	}
 	if value, ok := _u.mutation.State(); ok {
 		_spec.SetField(game.FieldState, field.TypeEnum, value)
+	}
+	if _u.mutation.OwnerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   game.OwnerTable,
+			Columns: []string{game.OwnerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OwnerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   game.OwnerTable,
+			Columns: []string{game.OwnerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.ScriptCleared() {
 		edge := &sqlgraph.EdgeSpec{

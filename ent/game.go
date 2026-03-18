@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/loomi-labs/clockkeeper/ent/game"
 	"github.com/loomi-labs/clockkeeper/ent/script"
+	"github.com/loomi-labs/clockkeeper/ent/user"
 )
 
 // Game is the model entity for the Game schema.
@@ -23,6 +24,8 @@ type Game struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// UserID holds the value of the "user_id" field.
+	UserID int `json:"user_id,omitempty"`
 	// ScriptID holds the value of the "script_id" field.
 	ScriptID int `json:"script_id,omitempty"`
 	// PlayerCount holds the value of the "player_count" field.
@@ -43,11 +46,24 @@ type Game struct {
 
 // GameEdges holds the relations/edges for other nodes in the graph.
 type GameEdges struct {
+	// Owner holds the value of the owner edge.
+	Owner *User `json:"owner,omitempty"`
 	// Script holds the value of the script edge.
 	Script *Script `json:"script,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
+}
+
+// OwnerOrErr returns the Owner value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e GameEdges) OwnerOrErr() (*User, error) {
+	if e.Owner != nil {
+		return e.Owner, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: user.Label}
+	}
+	return nil, &NotLoadedError{edge: "owner"}
 }
 
 // ScriptOrErr returns the Script value or an error if the edge
@@ -55,7 +71,7 @@ type GameEdges struct {
 func (e GameEdges) ScriptOrErr() (*Script, error) {
 	if e.Script != nil {
 		return e.Script, nil
-	} else if e.loadedTypes[0] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: script.Label}
 	}
 	return nil, &NotLoadedError{edge: "script"}
@@ -68,7 +84,7 @@ func (*Game) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case game.FieldSelectedRoles, game.FieldSelectedTravellers:
 			values[i] = new([]byte)
-		case game.FieldID, game.FieldScriptID, game.FieldPlayerCount, game.FieldTravellerCount:
+		case game.FieldID, game.FieldUserID, game.FieldScriptID, game.FieldPlayerCount, game.FieldTravellerCount:
 			values[i] = new(sql.NullInt64)
 		case game.FieldState:
 			values[i] = new(sql.NullString)
@@ -106,6 +122,12 @@ func (_m *Game) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
+			}
+		case game.FieldUserID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field user_id", values[i])
+			} else if value.Valid {
+				_m.UserID = int(value.Int64)
 			}
 		case game.FieldScriptID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -160,6 +182,11 @@ func (_m *Game) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
+// QueryOwner queries the "owner" edge of the Game entity.
+func (_m *Game) QueryOwner() *UserQuery {
+	return NewGameClient(_m.config).QueryOwner(_m)
+}
+
 // QueryScript queries the "script" edge of the Game entity.
 func (_m *Game) QueryScript() *ScriptQuery {
 	return NewGameClient(_m.config).QueryScript(_m)
@@ -193,6 +220,9 @@ func (_m *Game) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("user_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.UserID))
 	builder.WriteString(", ")
 	builder.WriteString("script_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ScriptID))

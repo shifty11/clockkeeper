@@ -65,6 +65,11 @@ func UpdatedAt(v time.Time) predicate.Game {
 	return predicate.Game(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
+// UserID applies equality check predicate on the "user_id" field. It's identical to UserIDEQ.
+func UserID(v int) predicate.Game {
+	return predicate.Game(sql.FieldEQ(FieldUserID, v))
+}
+
 // ScriptID applies equality check predicate on the "script_id" field. It's identical to ScriptIDEQ.
 func ScriptID(v int) predicate.Game {
 	return predicate.Game(sql.FieldEQ(FieldScriptID, v))
@@ -158,6 +163,26 @@ func UpdatedAtLT(v time.Time) predicate.Game {
 // UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
 func UpdatedAtLTE(v time.Time) predicate.Game {
 	return predicate.Game(sql.FieldLTE(FieldUpdatedAt, v))
+}
+
+// UserIDEQ applies the EQ predicate on the "user_id" field.
+func UserIDEQ(v int) predicate.Game {
+	return predicate.Game(sql.FieldEQ(FieldUserID, v))
+}
+
+// UserIDNEQ applies the NEQ predicate on the "user_id" field.
+func UserIDNEQ(v int) predicate.Game {
+	return predicate.Game(sql.FieldNEQ(FieldUserID, v))
+}
+
+// UserIDIn applies the In predicate on the "user_id" field.
+func UserIDIn(vs ...int) predicate.Game {
+	return predicate.Game(sql.FieldIn(FieldUserID, vs...))
+}
+
+// UserIDNotIn applies the NotIn predicate on the "user_id" field.
+func UserIDNotIn(vs ...int) predicate.Game {
+	return predicate.Game(sql.FieldNotIn(FieldUserID, vs...))
 }
 
 // ScriptIDEQ applies the EQ predicate on the "script_id" field.
@@ -278,6 +303,29 @@ func StateIn(vs ...State) predicate.Game {
 // StateNotIn applies the NotIn predicate on the "state" field.
 func StateNotIn(vs ...State) predicate.Game {
 	return predicate.Game(sql.FieldNotIn(FieldState, vs...))
+}
+
+// HasOwner applies the HasEdge predicate on the "owner" edge.
+func HasOwner() predicate.Game {
+	return predicate.Game(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, OwnerTable, OwnerColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOwnerWith applies the HasEdge predicate on the "owner" edge with a given conditions (other predicates).
+func HasOwnerWith(preds ...predicate.User) predicate.Game {
+	return predicate.Game(func(s *sql.Selector) {
+		step := newOwnerStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // HasScript applies the HasEdge predicate on the "script" edge.

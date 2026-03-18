@@ -11,18 +11,20 @@ import (
 func (h *ClockKeeperServiceHandler) ListCharacters(ctx context.Context, req *connect.Request[clockkeeperv1.ListCharactersRequest]) (*connect.Response[clockkeeperv1.ListCharactersResponse], error) {
 	var chars []*botc.Character
 
+	teamFilter := protoToTeam[req.Msg.Team] // TEAM_UNSPECIFIED maps to zero value ""
+
 	switch {
-	case req.Msg.Edition != "" && req.Msg.Team != "":
+	case req.Msg.Edition != "" && teamFilter != "":
 		// Filter by both edition and team.
 		for _, c := range h.registry.CharactersByEdition(req.Msg.Edition) {
-			if string(c.Team) == req.Msg.Team {
+			if c.Team == teamFilter {
 				chars = append(chars, c)
 			}
 		}
 	case req.Msg.Edition != "":
 		chars = h.registry.CharactersByEdition(req.Msg.Edition)
-	case req.Msg.Team != "":
-		chars = h.registry.CharactersByTeam(botc.Team(req.Msg.Team))
+	case teamFilter != "":
+		chars = h.registry.CharactersByTeam(teamFilter)
 	default:
 		chars = h.registry.AllCharacters()
 	}

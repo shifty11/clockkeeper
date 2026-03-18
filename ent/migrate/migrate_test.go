@@ -30,6 +30,7 @@ var migrationValidators = map[string]func(t *testing.T, ctx context.Context, db 
 	"20260315195303_add_selected_travellers":        validateSelectedTravellers,
 	"20260316163815_add_system_scripts":              validateSystemScripts,
 	"20260316165946_add_script_soft_delete":          validateScriptSoftDelete,
+	"20260318105440_add_game_owner":                   validateGameOwner,
 }
 
 // TestMigrationCoverage ensures every migration file has a registered validator.
@@ -325,6 +326,19 @@ func validateScriptSoftDelete(t *testing.T, ctx context.Context, db *sql.DB, cli
 		if s.DeletedAt != nil {
 			t.Errorf("script %q should have nil deleted_at", s.Name)
 		}
+	}
+}
+
+// validateGameOwner checks that the user_id column exists and was backfilled.
+func validateGameOwner(t *testing.T, ctx context.Context, _ *sql.DB, client *ent.Client) {
+	t.Helper()
+
+	g, err := client.Game.Query().Only(ctx)
+	if err != nil {
+		t.Fatalf("failed to query game: %v", err)
+	}
+	if g.UserID == 0 {
+		t.Error("expected game user_id to be backfilled, got 0")
 	}
 }
 

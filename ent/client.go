@@ -325,6 +325,22 @@ func (c *GameClient) GetX(ctx context.Context, id int) *Game {
 	return obj
 }
 
+// QueryOwner queries the owner edge of a Game.
+func (c *GameClient) QueryOwner(_m *Game) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(game.Table, game.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, game.OwnerTable, game.OwnerColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryScript queries the script edge of a Game.
 func (c *GameClient) QueryScript(_m *Game) *ScriptQuery {
 	query := (&ScriptClient{config: c.config}).Query()
@@ -648,6 +664,22 @@ func (c *UserClient) QueryScripts(_m *User) *ScriptQuery {
 			sqlgraph.From(user.Table, user.FieldID, id),
 			sqlgraph.To(script.Table, script.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.ScriptsTable, user.ScriptsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryGames queries the games edge of a User.
+func (c *UserClient) QueryGames(_m *User) *GameQuery {
+	query := (&GameClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(game.Table, game.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.GamesTable, user.GamesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

@@ -15,6 +15,11 @@ import (
 )
 
 func (h *ClockKeeperServiceHandler) CreateGame(ctx context.Context, req *connect.Request[clockkeeperv1.CreateGameRequest]) (*connect.Response[clockkeeperv1.CreateGameResponse], error) {
+	u, err := h.currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	// Validate player count.
 	if _, err := botc.DistributionForPlayerCount(int(req.Msg.PlayerCount)); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -39,6 +44,7 @@ func (h *ClockKeeperServiceHandler) CreateGame(ctx context.Context, req *connect
 	}
 
 	g, err := h.db.Game.Create().
+		SetUserID(u.ID).
 		SetScriptID(int(req.Msg.ScriptId)).
 		SetPlayerCount(int(req.Msg.PlayerCount)).
 		SetTravellerCount(travellerCount).
@@ -57,13 +63,9 @@ func (h *ClockKeeperServiceHandler) CreateGame(ctx context.Context, req *connect
 }
 
 func (h *ClockKeeperServiceHandler) GetGame(ctx context.Context, req *connect.Request[clockkeeperv1.GetGameRequest]) (*connect.Response[clockkeeperv1.GetGameResponse], error) {
-	g, err := h.db.Game.Get(ctx, int(req.Msg.Id))
+	g, err := h.getOwnedGame(ctx, int(req.Msg.Id))
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("game not found"))
-		}
-		slog.Error("get game failed", "err", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
+		return nil, err
 	}
 
 	return connect.NewResponse(&clockkeeperv1.GetGameResponse{
@@ -72,13 +74,9 @@ func (h *ClockKeeperServiceHandler) GetGame(ctx context.Context, req *connect.Re
 }
 
 func (h *ClockKeeperServiceHandler) RandomizeRoles(ctx context.Context, req *connect.Request[clockkeeperv1.RandomizeRolesRequest]) (*connect.Response[clockkeeperv1.RandomizeRolesResponse], error) {
-	g, err := h.db.Game.Get(ctx, int(req.Msg.GameId))
+	g, err := h.getOwnedGame(ctx, int(req.Msg.GameId))
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("game not found"))
-		}
-		slog.Error("get game for randomize failed", "err", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
+		return nil, err
 	}
 
 	// Get the script's character pool.
@@ -131,13 +129,9 @@ func (h *ClockKeeperServiceHandler) RandomizeRoles(ctx context.Context, req *con
 }
 
 func (h *ClockKeeperServiceHandler) UpdateGameRoles(ctx context.Context, req *connect.Request[clockkeeperv1.UpdateGameRolesRequest]) (*connect.Response[clockkeeperv1.UpdateGameRolesResponse], error) {
-	g, err := h.db.Game.Get(ctx, int(req.Msg.GameId))
+	g, err := h.getOwnedGame(ctx, int(req.Msg.GameId))
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("game not found"))
-		}
-		slog.Error("get game for update roles failed", "err", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
+		return nil, err
 	}
 
 	g, err = g.Update().SetSelectedRoles(req.Msg.SelectedRoleIds).Save(ctx)
@@ -152,13 +146,9 @@ func (h *ClockKeeperServiceHandler) UpdateGameRoles(ctx context.Context, req *co
 }
 
 func (h *ClockKeeperServiceHandler) UpdateGameTravellers(ctx context.Context, req *connect.Request[clockkeeperv1.UpdateGameTravellersRequest]) (*connect.Response[clockkeeperv1.UpdateGameTravellersResponse], error) {
-	g, err := h.db.Game.Get(ctx, int(req.Msg.GameId))
+	g, err := h.getOwnedGame(ctx, int(req.Msg.GameId))
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("game not found"))
-		}
-		slog.Error("get game for update travellers failed", "err", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
+		return nil, err
 	}
 
 	// Validate all IDs are traveller-team characters.
@@ -194,13 +184,9 @@ func (h *ClockKeeperServiceHandler) UpdateGameTravellers(ctx context.Context, re
 }
 
 func (h *ClockKeeperServiceHandler) GetSetupChecklist(ctx context.Context, req *connect.Request[clockkeeperv1.GetSetupChecklistRequest]) (*connect.Response[clockkeeperv1.GetSetupChecklistResponse], error) {
-	g, err := h.db.Game.Get(ctx, int(req.Msg.GameId))
+	g, err := h.getOwnedGame(ctx, int(req.Msg.GameId))
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("game not found"))
-		}
-		slog.Error("get game for checklist failed", "err", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
+		return nil, err
 	}
 
 	chars := h.registry.Characters(g.SelectedRoles)
@@ -219,4 +205,27 @@ func (h *ClockKeeperServiceHandler) GetSetupChecklist(ctx context.Context, req *
 	return connect.NewResponse(&clockkeeperv1.GetSetupChecklistResponse{
 		Steps: protoSteps,
 	}), nil
+}
+
+// getOwnedGame fetches a game by ID and verifies the current user owns it.
+func (h *ClockKeeperServiceHandler) getOwnedGame(ctx context.Context, gameID int) (*ent.Game, error) {
+	u, err := h.currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	g, err := h.db.Game.Get(ctx, gameID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("game not found"))
+		}
+		slog.Error("get game failed", "err", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
+	}
+
+	if g.UserID != u.ID {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("you do not own this game"))
+	}
+
+	return g, nil
 }

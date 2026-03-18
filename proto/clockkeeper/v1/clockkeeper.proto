@@ -32,6 +32,25 @@ service ClockKeeperService {
   rpc GetSetupChecklist(GetSetupChecklistRequest) returns (GetSetupChecklistResponse) {}
 }
 
+// --- Enums ---
+
+enum GameState {
+  GAME_STATE_UNSPECIFIED = 0;
+  GAME_STATE_SETUP = 1;
+  GAME_STATE_IN_PROGRESS = 2;
+  GAME_STATE_COMPLETED = 3;
+}
+
+enum Team {
+  TEAM_UNSPECIFIED = 0;
+  TEAM_TOWNSFOLK = 1;
+  TEAM_OUTSIDER = 2;
+  TEAM_MINION = 3;
+  TEAM_DEMON = 4;
+  TEAM_TRAVELLER = 5;
+  TEAM_FABLED = 6;
+}
+
 // --- Auth ---
 
 message LoginRequest {
@@ -48,7 +67,7 @@ message LoginResponse {
 message Character {
   string id = 1;
   string name = 2;
-  string team = 3;
+  Team team = 3;
   string edition = 4;
   string ability = 5;
   bool setup = 6;
@@ -62,7 +81,7 @@ message Character {
 
 message ListCharactersRequest {
   string edition = 1;
-  string team = 2;
+  Team team = 2;
 }
 
 message ListCharactersResponse {
@@ -170,7 +189,7 @@ message Game {
   int64 script_id = 2;
   int32 player_count = 3;
   repeated string selected_role_ids = 4;
-  string state = 5;
+  GameState state = 5;
   RoleDistribution distribution = 6;
   repeated Character selected_characters = 7;
   repeated ReminderToken reminder_tokens = 8;

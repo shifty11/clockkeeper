@@ -24,6 +24,8 @@ const (
 	FieldPasswordHash = "password_hash"
 	// EdgeScripts holds the string denoting the scripts edge name in mutations.
 	EdgeScripts = "scripts"
+	// EdgeGames holds the string denoting the games edge name in mutations.
+	EdgeGames = "games"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// ScriptsTable is the table that holds the scripts relation/edge.
@@ -33,6 +35,13 @@ const (
 	ScriptsInverseTable = "scripts"
 	// ScriptsColumn is the table column denoting the scripts relation/edge.
 	ScriptsColumn = "user_id"
+	// GamesTable is the table that holds the games relation/edge.
+	GamesTable = "games"
+	// GamesInverseTable is the table name for the Game entity.
+	// It exists in this package in order to avoid circular dependency with the "game" package.
+	GamesInverseTable = "games"
+	// GamesColumn is the table column denoting the games relation/edge.
+	GamesColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -108,10 +117,31 @@ func ByScripts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newScriptsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByGamesCount orders the results by games count.
+func ByGamesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newGamesStep(), opts...)
+	}
+}
+
+// ByGames orders the results by games terms.
+func ByGames(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newGamesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newScriptsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ScriptsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ScriptsTable, ScriptsColumn),
+	)
+}
+func newGamesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(GamesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, GamesTable, GamesColumn),
 	)
 }

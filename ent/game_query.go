@@ -14,6 +14,7 @@ import (
 	"github.com/loomi-labs/clockkeeper/ent/game"
 	"github.com/loomi-labs/clockkeeper/ent/predicate"
 	"github.com/loomi-labs/clockkeeper/ent/script"
+	"github.com/loomi-labs/clockkeeper/ent/user"
 )
 
 // GameQuery is the builder for querying Game entities.
@@ -23,6 +24,7 @@ type GameQuery struct {
 	order      []game.OrderOption
 	inters     []Interceptor
 	predicates []predicate.Game
+	withOwner  *UserQuery
 	withScript *ScriptQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -58,6 +60,28 @@ func (_q *GameQuery) Unique(unique bool) *GameQuery {
 func (_q *GameQuery) Order(o ...game.OrderOption) *GameQuery {
 	_q.order = append(_q.order, o...)
 	return _q
+}
+
+// QueryOwner chains the current query on the "owner" edge.
+func (_q *GameQuery) QueryOwner() *UserQuery {
+	query := (&UserClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(game.Table, game.FieldID, selector),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, game.OwnerTable, game.OwnerColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QueryScript chains the current query on the "script" edge.
@@ -274,11 +298,23 @@ func (_q *GameQuery) Clone() *GameQuery {
 		order:      append([]game.OrderOption{}, _q.order...),
 		inters:     append([]Interceptor{}, _q.inters...),
 		predicates: append([]predicate.Game{}, _q.predicates...),
+		withOwner:  _q.withOwner.Clone(),
 		withScript: _q.withScript.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithOwner tells the query-builder to eager-load the nodes that are connected to
+// the "owner" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *GameQuery) WithOwner(opts ...func(*UserQuery)) *GameQuery {
+	query := (&UserClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withOwner = query
+	return _q
 }
 
 // WithScript tells the query-builder to eager-load the nodes that are connected to
@@ -370,7 +406,8 @@ func (_q *GameQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Game, e
 	var (
 		nodes       = []*Game{}
 		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
+			_q.withOwner != nil,
 			_q.withScript != nil,
 		}
 	)
@@ -392,6 +429,12 @@ func (_q *GameQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Game, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := _q.withOwner; query != nil {
+		if err := _q.loadOwner(ctx, query, nodes, nil,
+			func(n *Game, e *User) { n.Edges.Owner = e }); err != nil {
+			return nil, err
+		}
+	}
 	if query := _q.withScript; query != nil {
 		if err := _q.loadScript(ctx, query, nodes, nil,
 			func(n *Game, e *Script) { n.Edges.Script = e }); err != nil {
@@ -401,6 +444,35 @@ func (_q *GameQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Game, e
 	return nodes, nil
 }
 
+func (_q *GameQuery) loadOwner(ctx context.Context, query *UserQuery, nodes []*Game, init func(*Game), assign func(*Game, *User)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Game)
+	for i := range nodes {
+		fk := nodes[i].UserID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(user.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "user_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (_q *GameQuery) loadScript(ctx context.Context, query *ScriptQuery, nodes []*Game, init func(*Game), assign func(*Game, *Script)) error {
 	ids := make([]int, 0, len(nodes))
 	nodeids := make(map[int][]*Game)
@@ -455,6 +527,9 @@ func (_q *GameQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != game.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withOwner != nil {
+			_spec.Node.AddColumnOnce(game.FieldUserID)
 		}
 		if _q.withScript != nil {
 			_spec.Node.AddColumnOnce(game.FieldScriptID)

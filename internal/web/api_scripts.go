@@ -129,6 +129,11 @@ func (h *ClockKeeperServiceHandler) CreateScriptFromEdition(ctx context.Context,
 }
 
 func (h *ClockKeeperServiceHandler) UpdateScript(ctx context.Context, req *connect.Request[clockkeeperv1.UpdateScriptRequest]) (*connect.Response[clockkeeperv1.UpdateScriptResponse], error) {
+	u, err := h.currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	existing, err := h.db.Script.Get(ctx, int(req.Msg.Id))
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -139,6 +144,9 @@ func (h *ClockKeeperServiceHandler) UpdateScript(ctx context.Context, req *conne
 	}
 	if existing.IsSystem {
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("system scripts cannot be modified"))
+	}
+	if existing.UserID == nil || *existing.UserID != u.ID {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("you do not own this script"))
 	}
 
 	update := h.db.Script.UpdateOneID(existing.ID)
@@ -161,6 +169,11 @@ func (h *ClockKeeperServiceHandler) UpdateScript(ctx context.Context, req *conne
 }
 
 func (h *ClockKeeperServiceHandler) DeleteScript(ctx context.Context, req *connect.Request[clockkeeperv1.DeleteScriptRequest]) (*connect.Response[clockkeeperv1.DeleteScriptResponse], error) {
+	u, err := h.currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	existing, err := h.db.Script.Get(ctx, int(req.Msg.Id))
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -171,6 +184,9 @@ func (h *ClockKeeperServiceHandler) DeleteScript(ctx context.Context, req *conne
 	}
 	if existing.IsSystem {
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("system scripts cannot be deleted"))
+	}
+	if existing.UserID == nil || *existing.UserID != u.ID {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("you do not own this script"))
 	}
 
 	now := time.Now()

@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/loomi-labs/clockkeeper/ent/game"
 	"github.com/loomi-labs/clockkeeper/ent/script"
+	"github.com/loomi-labs/clockkeeper/ent/user"
 )
 
 // GameCreate is the builder for creating a Game entity.
@@ -46,6 +47,12 @@ func (_c *GameCreate) SetNillableUpdatedAt(v *time.Time) *GameCreate {
 	if v != nil {
 		_c.SetUpdatedAt(*v)
 	}
+	return _c
+}
+
+// SetUserID sets the "user_id" field.
+func (_c *GameCreate) SetUserID(v int) *GameCreate {
+	_c.mutation.SetUserID(v)
 	return _c
 }
 
@@ -99,6 +106,17 @@ func (_c *GameCreate) SetNillableState(v *game.State) *GameCreate {
 		_c.SetState(*v)
 	}
 	return _c
+}
+
+// SetOwnerID sets the "owner" edge to the User entity by ID.
+func (_c *GameCreate) SetOwnerID(id int) *GameCreate {
+	_c.mutation.SetOwnerID(id)
+	return _c
+}
+
+// SetOwner sets the "owner" edge to the User entity.
+func (_c *GameCreate) SetOwner(v *User) *GameCreate {
+	return _c.SetOwnerID(v.ID)
 }
 
 // SetScript sets the "script" edge to the Script entity.
@@ -167,6 +185,9 @@ func (_c *GameCreate) check() error {
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Game.updated_at"`)}
 	}
+	if _, ok := _c.mutation.UserID(); !ok {
+		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "Game.user_id"`)}
+	}
 	if _, ok := _c.mutation.ScriptID(); !ok {
 		return &ValidationError{Name: "script_id", err: errors.New(`ent: missing required field "Game.script_id"`)}
 	}
@@ -199,6 +220,9 @@ func (_c *GameCreate) check() error {
 		if err := game.StateValidator(v); err != nil {
 			return &ValidationError{Name: "state", err: fmt.Errorf(`ent: validator failed for field "Game.state": %w`, err)}
 		}
+	}
+	if len(_c.mutation.OwnerIDs()) == 0 {
+		return &ValidationError{Name: "owner", err: errors.New(`ent: missing required edge "Game.owner"`)}
 	}
 	if len(_c.mutation.ScriptIDs()) == 0 {
 		return &ValidationError{Name: "script", err: errors.New(`ent: missing required edge "Game.script"`)}
@@ -256,6 +280,23 @@ func (_c *GameCreate) createSpec() (*Game, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.State(); ok {
 		_spec.SetField(game.FieldState, field.TypeEnum, value)
 		_node.State = value
+	}
+	if nodes := _c.mutation.OwnerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   game.OwnerTable,
+			Columns: []string{game.OwnerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.UserID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.ScriptIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

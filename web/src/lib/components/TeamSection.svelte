@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Character } from '~/lib/gen/clockkeeper/v1/clockkeeper_pb';
+	import { Team } from '~/lib/gen/clockkeeper/v1/clockkeeper_pb';
 	import CharacterCard from './CharacterCard.svelte';
 
 	let {
@@ -8,28 +9,28 @@
 		removable = false,
 		onremove
 	}: {
-		team: string;
+		team: Team;
 		characters: Character[];
 		removable?: boolean;
 		onremove?: (id: string) => void;
 	} = $props();
 
-	const teamLabels: Record<string, string> = {
-		townsfolk: 'Townsfolk',
-		outsider: 'Outsiders',
-		minion: 'Minions',
-		demon: 'Demons',
-		traveller: 'Travellers',
-		fabled: 'Fabled'
+	const teamLabels: Record<number, string> = {
+		[Team.TOWNSFOLK]: 'Townsfolk',
+		[Team.OUTSIDER]: 'Outsiders',
+		[Team.MINION]: 'Minions',
+		[Team.DEMON]: 'Demons',
+		[Team.TRAVELLER]: 'Travellers',
+		[Team.FABLED]: 'Fabled'
 	};
 
-	const teamHeaderColors: Record<string, string> = {
-		townsfolk: 'text-blue-400',
-		outsider: 'text-cyan-400',
-		minion: 'text-orange-400',
-		demon: 'text-red-400',
-		traveller: 'text-yellow-400',
-		fabled: 'text-amber-400'
+	const teamHeaderColors: Record<number, string> = {
+		[Team.TOWNSFOLK]: 'text-blue-400',
+		[Team.OUTSIDER]: 'text-cyan-400',
+		[Team.MINION]: 'text-orange-400',
+		[Team.DEMON]: 'text-red-400',
+		[Team.TRAVELLER]: 'text-yellow-400',
+		[Team.FABLED]: 'text-amber-400'
 	};
 </script>
 

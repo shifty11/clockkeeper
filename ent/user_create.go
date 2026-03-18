@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/loomi-labs/clockkeeper/ent/game"
 	"github.com/loomi-labs/clockkeeper/ent/script"
 	"github.com/loomi-labs/clockkeeper/ent/user"
 )
@@ -74,6 +75,21 @@ func (_c *UserCreate) AddScripts(v ...*Script) *UserCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddScriptIDs(ids...)
+}
+
+// AddGameIDs adds the "games" edge to the Game entity by IDs.
+func (_c *UserCreate) AddGameIDs(ids ...int) *UserCreate {
+	_c.mutation.AddGameIDs(ids...)
+	return _c
+}
+
+// AddGames adds the "games" edges to the Game entity.
+func (_c *UserCreate) AddGames(v ...*Game) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddGameIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -196,6 +212,22 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(script.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.GamesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.GamesTable,
+			Columns: []string{user.GamesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(game.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

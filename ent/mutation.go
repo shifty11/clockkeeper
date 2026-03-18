@@ -49,6 +49,8 @@ type GameMutation struct {
 	appendselected_travellers []string
 	state                     *game.State
 	clearedFields             map[string]struct{}
+	owner                     *int
+	clearedowner              bool
 	script                    *int
 	clearedscript             bool
 	done                      bool
@@ -224,6 +226,42 @@ func (m *GameMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error
 // ResetUpdatedAt resets all changes to the "updated_at" field.
 func (m *GameMutation) ResetUpdatedAt() {
 	m.updated_at = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *GameMutation) SetUserID(i int) {
+	m.owner = &i
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *GameMutation) UserID() (r int, exists bool) {
+	v := m.owner
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the Game entity.
+// If the Game object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GameMutation) OldUserID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *GameMutation) ResetUserID() {
+	m.owner = nil
 }
 
 // SetScriptID sets the "script_id" field.
@@ -512,6 +550,46 @@ func (m *GameMutation) ResetState() {
 	m.state = nil
 }
 
+// SetOwnerID sets the "owner" edge to the User entity by id.
+func (m *GameMutation) SetOwnerID(id int) {
+	m.owner = &id
+}
+
+// ClearOwner clears the "owner" edge to the User entity.
+func (m *GameMutation) ClearOwner() {
+	m.clearedowner = true
+	m.clearedFields[game.FieldUserID] = struct{}{}
+}
+
+// OwnerCleared reports if the "owner" edge to the User entity was cleared.
+func (m *GameMutation) OwnerCleared() bool {
+	return m.clearedowner
+}
+
+// OwnerID returns the "owner" edge ID in the mutation.
+func (m *GameMutation) OwnerID() (id int, exists bool) {
+	if m.owner != nil {
+		return *m.owner, true
+	}
+	return
+}
+
+// OwnerIDs returns the "owner" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// OwnerID instead. It exists only for internal usage by the builders.
+func (m *GameMutation) OwnerIDs() (ids []int) {
+	if id := m.owner; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetOwner resets all changes to the "owner" edge.
+func (m *GameMutation) ResetOwner() {
+	m.owner = nil
+	m.clearedowner = false
+}
+
 // ClearScript clears the "script" edge to the Script entity.
 func (m *GameMutation) ClearScript() {
 	m.clearedscript = true
@@ -573,12 +651,15 @@ func (m *GameMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GameMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, game.FieldCreatedAt)
 	}
 	if m.updated_at != nil {
 		fields = append(fields, game.FieldUpdatedAt)
+	}
+	if m.owner != nil {
+		fields = append(fields, game.FieldUserID)
 	}
 	if m.script != nil {
 		fields = append(fields, game.FieldScriptID)
@@ -610,6 +691,8 @@ func (m *GameMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedAt()
 	case game.FieldUpdatedAt:
 		return m.UpdatedAt()
+	case game.FieldUserID:
+		return m.UserID()
 	case game.FieldScriptID:
 		return m.ScriptID()
 	case game.FieldPlayerCount:
@@ -635,6 +718,8 @@ func (m *GameMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldCreatedAt(ctx)
 	case game.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
+	case game.FieldUserID:
+		return m.OldUserID(ctx)
 	case game.FieldScriptID:
 		return m.OldScriptID(ctx)
 	case game.FieldPlayerCount:
@@ -669,6 +754,13 @@ func (m *GameMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
+		return nil
+	case game.FieldUserID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
 		return nil
 	case game.FieldScriptID:
 		v, ok := value.(int)
@@ -794,6 +886,9 @@ func (m *GameMutation) ResetField(name string) error {
 	case game.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
+	case game.FieldUserID:
+		m.ResetUserID()
+		return nil
 	case game.FieldScriptID:
 		m.ResetScriptID()
 		return nil
@@ -818,7 +913,10 @@ func (m *GameMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *GameMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
+	if m.owner != nil {
+		edges = append(edges, game.EdgeOwner)
+	}
 	if m.script != nil {
 		edges = append(edges, game.EdgeScript)
 	}
@@ -829,6 +927,10 @@ func (m *GameMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *GameMutation) AddedIDs(name string) []ent.Value {
 	switch name {
+	case game.EdgeOwner:
+		if id := m.owner; id != nil {
+			return []ent.Value{*id}
+		}
 	case game.EdgeScript:
 		if id := m.script; id != nil {
 			return []ent.Value{*id}
@@ -839,7 +941,7 @@ func (m *GameMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *GameMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	return edges
 }
 
@@ -851,7 +953,10 @@ func (m *GameMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *GameMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
+	if m.clearedowner {
+		edges = append(edges, game.EdgeOwner)
+	}
 	if m.clearedscript {
 		edges = append(edges, game.EdgeScript)
 	}
@@ -862,6 +967,8 @@ func (m *GameMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *GameMutation) EdgeCleared(name string) bool {
 	switch name {
+	case game.EdgeOwner:
+		return m.clearedowner
 	case game.EdgeScript:
 		return m.clearedscript
 	}
@@ -872,6 +979,9 @@ func (m *GameMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *GameMutation) ClearEdge(name string) error {
 	switch name {
+	case game.EdgeOwner:
+		m.ClearOwner()
+		return nil
 	case game.EdgeScript:
 		m.ClearScript()
 		return nil
@@ -883,6 +993,9 @@ func (m *GameMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *GameMutation) ResetEdge(name string) error {
 	switch name {
+	case game.EdgeOwner:
+		m.ResetOwner()
+		return nil
 	case game.EdgeScript:
 		m.ResetScript()
 		return nil
@@ -1820,6 +1933,9 @@ type UserMutation struct {
 	scripts        map[int]struct{}
 	removedscripts map[int]struct{}
 	clearedscripts bool
+	games          map[int]struct{}
+	removedgames   map[int]struct{}
+	clearedgames   bool
 	done           bool
 	oldValue       func(context.Context) (*User, error)
 	predicates     []predicate.User
@@ -2121,6 +2237,60 @@ func (m *UserMutation) ResetScripts() {
 	m.removedscripts = nil
 }
 
+// AddGameIDs adds the "games" edge to the Game entity by ids.
+func (m *UserMutation) AddGameIDs(ids ...int) {
+	if m.games == nil {
+		m.games = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.games[ids[i]] = struct{}{}
+	}
+}
+
+// ClearGames clears the "games" edge to the Game entity.
+func (m *UserMutation) ClearGames() {
+	m.clearedgames = true
+}
+
+// GamesCleared reports if the "games" edge to the Game entity was cleared.
+func (m *UserMutation) GamesCleared() bool {
+	return m.clearedgames
+}
+
+// RemoveGameIDs removes the "games" edge to the Game entity by IDs.
+func (m *UserMutation) RemoveGameIDs(ids ...int) {
+	if m.removedgames == nil {
+		m.removedgames = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.games, ids[i])
+		m.removedgames[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedGames returns the removed IDs of the "games" edge to the Game entity.
+func (m *UserMutation) RemovedGamesIDs() (ids []int) {
+	for id := range m.removedgames {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// GamesIDs returns the "games" edge IDs in the mutation.
+func (m *UserMutation) GamesIDs() (ids []int) {
+	for id := range m.games {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetGames resets all changes to the "games" edge.
+func (m *UserMutation) ResetGames() {
+	m.games = nil
+	m.clearedgames = false
+	m.removedgames = nil
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -2305,9 +2475,12 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.scripts != nil {
 		edges = append(edges, user.EdgeScripts)
+	}
+	if m.games != nil {
+		edges = append(edges, user.EdgeGames)
 	}
 	return edges
 }
@@ -2322,15 +2495,24 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeGames:
+		ids := make([]ent.Value, 0, len(m.games))
+		for id := range m.games {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removedscripts != nil {
 		edges = append(edges, user.EdgeScripts)
+	}
+	if m.removedgames != nil {
+		edges = append(edges, user.EdgeGames)
 	}
 	return edges
 }
@@ -2345,15 +2527,24 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeGames:
+		ids := make([]ent.Value, 0, len(m.removedgames))
+		for id := range m.removedgames {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedscripts {
 		edges = append(edges, user.EdgeScripts)
+	}
+	if m.clearedgames {
+		edges = append(edges, user.EdgeGames)
 	}
 	return edges
 }
@@ -2364,6 +2555,8 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 	switch name {
 	case user.EdgeScripts:
 		return m.clearedscripts
+	case user.EdgeGames:
+		return m.clearedgames
 	}
 	return false
 }
@@ -2382,6 +2575,9 @@ func (m *UserMutation) ResetEdge(name string) error {
 	switch name {
 	case user.EdgeScripts:
 		m.ResetScripts()
+		return nil
+	case user.EdgeGames:
+		m.ResetGames()
 		return nil
 	}
 	return fmt.Errorf("unknown User edge %s", name)

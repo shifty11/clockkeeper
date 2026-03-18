@@ -2,15 +2,40 @@ package web
 
 import (
 	"github.com/loomi-labs/clockkeeper/ent"
+	"github.com/loomi-labs/clockkeeper/ent/game"
 	clockkeeperv1 "github.com/loomi-labs/clockkeeper/gen/clockkeeper/v1"
 	"github.com/loomi-labs/clockkeeper/internal/botc"
 )
+
+var teamToProto = map[botc.Team]clockkeeperv1.Team{
+	botc.TeamTownsfolk: clockkeeperv1.Team_TEAM_TOWNSFOLK,
+	botc.TeamOutsider:  clockkeeperv1.Team_TEAM_OUTSIDER,
+	botc.TeamMinion:    clockkeeperv1.Team_TEAM_MINION,
+	botc.TeamDemon:     clockkeeperv1.Team_TEAM_DEMON,
+	botc.TeamTraveller: clockkeeperv1.Team_TEAM_TRAVELLER,
+	botc.TeamFabled:    clockkeeperv1.Team_TEAM_FABLED,
+}
+
+var protoToTeam = map[clockkeeperv1.Team]botc.Team{
+	clockkeeperv1.Team_TEAM_TOWNSFOLK: botc.TeamTownsfolk,
+	clockkeeperv1.Team_TEAM_OUTSIDER:  botc.TeamOutsider,
+	clockkeeperv1.Team_TEAM_MINION:    botc.TeamMinion,
+	clockkeeperv1.Team_TEAM_DEMON:     botc.TeamDemon,
+	clockkeeperv1.Team_TEAM_TRAVELLER: botc.TeamTraveller,
+	clockkeeperv1.Team_TEAM_FABLED:    botc.TeamFabled,
+}
+
+var gameStateToProto = map[game.State]clockkeeperv1.GameState{
+	game.StateSetup:      clockkeeperv1.GameState_GAME_STATE_SETUP,
+	game.StateInProgress: clockkeeperv1.GameState_GAME_STATE_IN_PROGRESS,
+	game.StateCompleted:  clockkeeperv1.GameState_GAME_STATE_COMPLETED,
+}
 
 func characterToProto(c *botc.Character) *clockkeeperv1.Character {
 	return &clockkeeperv1.Character{
 		Id:                 c.ID,
 		Name:               c.Name,
-		Team:               string(c.Team),
+		Team:               teamToProto[c.Team],
 		Edition:            c.Edition,
 		Ability:            c.Ability,
 		Setup:              c.Setup,
@@ -87,7 +112,7 @@ func entGameToProto(g *ent.Game, registry *botc.Registry) *clockkeeperv1.Game {
 		TravellerCount:              int32(g.TravellerCount),
 		SelectedRoleIds:             g.SelectedRoles,
 		SelectedTravellerIds:        g.SelectedTravellers,
-		State:                       string(g.State),
+		State:                       gameStateToProto[g.State],
 		Distribution:                dist,
 		SelectedCharacters:          charactersToProto(chars),
 		SelectedTravellerCharacters: charactersToProto(travellerChars),

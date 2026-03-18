@@ -19,6 +19,8 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
+	// FieldUserID holds the string denoting the user_id field in the database.
+	FieldUserID = "user_id"
 	// FieldScriptID holds the string denoting the script_id field in the database.
 	FieldScriptID = "script_id"
 	// FieldPlayerCount holds the string denoting the player_count field in the database.
@@ -31,10 +33,19 @@ const (
 	FieldSelectedTravellers = "selected_travellers"
 	// FieldState holds the string denoting the state field in the database.
 	FieldState = "state"
+	// EdgeOwner holds the string denoting the owner edge name in mutations.
+	EdgeOwner = "owner"
 	// EdgeScript holds the string denoting the script edge name in mutations.
 	EdgeScript = "script"
 	// Table holds the table name of the game in the database.
 	Table = "games"
+	// OwnerTable is the table that holds the owner relation/edge.
+	OwnerTable = "games"
+	// OwnerInverseTable is the table name for the User entity.
+	// It exists in this package in order to avoid circular dependency with the "user" package.
+	OwnerInverseTable = "users"
+	// OwnerColumn is the table column denoting the owner relation/edge.
+	OwnerColumn = "user_id"
 	// ScriptTable is the table that holds the script relation/edge.
 	ScriptTable = "games"
 	// ScriptInverseTable is the table name for the Script entity.
@@ -49,6 +60,7 @@ var Columns = []string{
 	FieldID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
+	FieldUserID,
 	FieldScriptID,
 	FieldPlayerCount,
 	FieldTravellerCount,
@@ -127,6 +139,11 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
+// ByUserID orders the results by the user_id field.
+func ByUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUserID, opts...).ToFunc()
+}
+
 // ByScriptID orders the results by the script_id field.
 func ByScriptID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldScriptID, opts...).ToFunc()
@@ -147,11 +164,25 @@ func ByState(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldState, opts...).ToFunc()
 }
 
+// ByOwnerField orders the results by owner field.
+func ByOwnerField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOwnerStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByScriptField orders the results by script field.
 func ByScriptField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newScriptStep(), sql.OrderByField(field, opts...))
 	}
+}
+func newOwnerStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OwnerInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, OwnerTable, OwnerColumn),
+	)
 }
 func newScriptStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

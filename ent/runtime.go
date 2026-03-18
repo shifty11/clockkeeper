@@ -31,7 +31,7 @@ func init() {
 	// game.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	game.UpdateDefaultUpdatedAt = gameDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// gameDescPlayerCount is the schema descriptor for player_count field.
-	gameDescPlayerCount := gameFields[1].Descriptor()
+	gameDescPlayerCount := gameFields[2].Descriptor()
 	// game.PlayerCountValidator is a validator for the "player_count" field. It is called by the builders before save.
 	game.PlayerCountValidator = func() func(int) error {
 		validators := gameDescPlayerCount.Validators
@@ -49,7 +49,7 @@ func init() {
 		}
 	}()
 	// gameDescTravellerCount is the schema descriptor for traveller_count field.
-	gameDescTravellerCount := gameFields[2].Descriptor()
+	gameDescTravellerCount := gameFields[3].Descriptor()
 	// game.DefaultTravellerCount holds the default value on creation for the traveller_count field.
 	game.DefaultTravellerCount = gameDescTravellerCount.Default.(int)
 	// game.TravellerCountValidator is a validator for the "traveller_count" field. It is called by the builders before save.
