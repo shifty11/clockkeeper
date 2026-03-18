@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { client } from '~/lib/api';
 	import { getErrorMessage } from '~/lib/errors';
+	import { editionStyle } from '~/lib/editions';
 	import type { Script, Edition, RoleDistribution } from '~/lib/gen/clockkeeper/v1/clockkeeper_pb';
 	import DistributionBar from '~/lib/components/DistributionBar.svelte';
 
@@ -16,12 +17,6 @@
 	let creating = $state(false);
 	let error = $state('');
 	let currentDist = $state<RoleDistribution | undefined>();
-
-	const editionStyles: Record<string, { border: string; bg: string; activeBorder: string; activeBg: string }> = {
-		tb: { border: 'border-rose-800/60', bg: 'bg-rose-950/40', activeBorder: 'border-rose-500', activeBg: 'bg-rose-900/50' },
-		bmr: { border: 'border-orange-800/60', bg: 'bg-orange-950/40', activeBorder: 'border-orange-500', activeBg: 'bg-orange-900/50' },
-		snv: { border: 'border-violet-700/60', bg: 'bg-violet-950/40', activeBorder: 'border-violet-500', activeBg: 'bg-violet-900/50' }
-	};
 
 	const playerCount = $derived(Math.min(totalCount, 15));
 	const minTravellers = $derived(Math.max(0, totalCount - 15));
@@ -111,7 +106,7 @@
 			{#if editions.length > 0}
 				<div class="grid gap-3 sm:grid-cols-3">
 					{#each editions as edition}
-						{@const style = editionStyles[edition.id] ?? { border: 'border-gray-700', bg: 'bg-gray-900', activeBorder: 'border-indigo-500', activeBg: 'bg-indigo-500/10' }}
+						{@const style = editionStyle(edition.id)}
 						{@const editionCharSet = new Set(edition.characterIds)}
 					{@const isSelected = selectedScript?.characterIds.some((id) => editionCharSet.has(id)) ?? false}
 						<button

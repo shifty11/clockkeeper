@@ -6,7 +6,8 @@ Digital companion app for in-person Blood on the Clocktower games. Storyteller-f
 
 - @docs/project-overview.md — Vision, scope, MVP definition
 - @docs/architecture.md — Tech stack, system design, testing strategy
-- @docs/user-stories.m` — User stories by feature area
+- `@docs/user-stories.md` — User stories by feature area
+- @docs/development-guidelines.md — Coding guidelines 
 
 ## Tech Stack
 

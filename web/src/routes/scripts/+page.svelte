@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { client } from '~/lib/api';
 	import { getErrorMessage } from '~/lib/errors';
+	import { editionStyle } from '~/lib/editions';
 	import type { Script, Edition } from '~/lib/gen/clockkeeper/v1/clockkeeper_pb';
 
 	let scripts = $state<Script[]>([]);
@@ -12,12 +13,6 @@
 	let showImport = $state(false);
 	let importJson = $state('');
 	let importError = $state('');
-
-	const editionStyles: Record<string, { border: string; bg: string; bgRaw: string }> = {
-		tb: { border: 'border-rose-800/60', bg: 'bg-rose-950/40', bgRaw: 'rgba(76, 5, 25, 0.4)' },
-		bmr: { border: 'border-orange-800/60', bg: 'bg-orange-950/40', bgRaw: 'rgba(67, 20, 7, 0.4)' },
-		snv: { border: 'border-violet-700/60', bg: 'bg-violet-950/40', bgRaw: 'rgba(46, 16, 101, 0.4)' }
-	};
 
 	const systemScripts = $derived(scripts.filter((s) => s.isSystem));
 	const userScripts = $derived(scripts.filter((s) => !s.isSystem));
@@ -38,14 +33,14 @@
 			return { classes: 'border-gray-700 bg-gray-900', inlineStyle: '' };
 		}
 		if (eds.length === 1) {
-			const s = editionStyles[eds[0]];
+			const s = editionStyle(eds[0]);
 			return { classes: `${s.border} ${s.bg}`, inlineStyle: '' };
 		}
 		// Multi-edition gradient
-		const colors = eds.map((e) => editionStyles[e].bgRaw);
+		const colors = eds.map((e) => editionStyle(e).bgRaw);
 		const stops = colors.map((c, i) => `${c} ${(i / (colors.length - 1)) * 100}%`).join(', ');
 		return {
-			classes: `${editionStyles[eds[0]].border}`,
+			classes: `${editionStyle(eds[0]).border}`,
 			inlineStyle: `background: linear-gradient(to right, ${stops})`
 		};
 	}
@@ -172,7 +167,7 @@
 				<h2 class="mb-3 text-lg font-semibold text-gray-300">Base Editions</h2>
 				<div class="grid gap-3 sm:grid-cols-3">
 					{#each systemScripts as sysScript (sysScript.id)}
-						{@const style = editionStyles[sysScript.edition] ?? { border: 'border-gray-700', bg: 'bg-gray-900' }}
+						{@const style = editionStyle(sysScript.edition)}
 						<a
 							href="/scripts/{sysScript.id}"
 							class="flex flex-col items-center rounded-lg border {style.border} {style.bg} p-5 transition-all hover:scale-[1.02] hover:brightness-110"
