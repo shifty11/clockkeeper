@@ -11,6 +11,7 @@ const (
 	TeamDemon     Team = "demon"
 	TeamTraveller Team = "traveller"
 	TeamFabled    Team = "fabled"
+	TeamLoric     Team = "loric"
 )
 
 // Character represents a Blood on the Clocktower character loaded from roles.json.

@@ -46,6 +46,19 @@ func NewRegistry(rolesJSON, jinxesJSON, nightSheetJSON []byte) (*Registry, error
 		r.byTeam[c.Team] = append(r.byTeam[c.Team], c)
 	}
 
+	// Populate FirstNight/OtherNight positions from the nightsheet order.
+	// roles.json doesn't include these; they come from nightsheet.json.
+	for i, id := range nightSheet.FirstNight {
+		if c, ok := r.characters[id]; ok {
+			c.FirstNight = i + 1
+		}
+	}
+	for i, id := range nightSheet.OtherNight {
+		if c, ok := r.characters[id]; ok {
+			c.OtherNight = i + 1
+		}
+	}
+
 	for _, cj := range charJinxes {
 		r.jinxes[cj.ID] = cj.Jinx
 	}

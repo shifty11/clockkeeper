@@ -4,6 +4,8 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { isAuthenticated, initAuth, getToken, logout } from '~/lib/auth';
+	import { initTheme } from '~/lib/theme';
+	import ThemeSwitcher from '~/lib/components/ThemeSwitcher.svelte';
 	import '~/app.css';
 
 	let { children }: { children: Snippet } = $props();
@@ -13,40 +15,38 @@
 
 	onMount(() => {
 		initAuth();
+		initTheme();
 		if (!getToken() && !page.url.pathname.startsWith('/login')) {
 			goto('/login');
 		}
 	});
 
-	const navLinks = [
-		{ href: '/scripts', label: 'Scripts' },
-		{ href: '/games/new', label: 'New Game' }
-	];
 </script>
 
 {#if page.url.pathname.startsWith('/login')}
 	{@render children()}
 {:else if authenticated}
-	<div class="min-h-dvh bg-gray-950 text-gray-100">
-		<nav class="border-b border-gray-800 bg-gray-900">
+	<div class="min-h-dvh text-primary">
+		<nav class="border-b border-border bg-surface">
 			<div class="mx-auto flex max-w-screen-xl items-center justify-between px-4 py-3">
 				<div class="flex items-center gap-6">
-					<a href="/" class="text-xl font-bold text-indigo-400">Clock Keeper</a>
-					{#each navLinks as link}
-						<a
-							href={link.href}
-							class="text-sm transition-colors {page.url.pathname.startsWith(link.href) ? 'text-white' : 'text-gray-400 hover:text-gray-200'}"
-						>
-							{link.label}
-						</a>
-					{/each}
+					<a href="/" class="text-xl font-bold text-indigo-600 dark:text-indigo-400">Clock Keeper</a>
+					<a
+						href="/almanac"
+						class="text-sm font-medium transition-colors {page.url.pathname.startsWith('/almanac') ? 'text-primary' : 'text-secondary hover:text-primary'}"
+					>
+						Almanac
+					</a>
 				</div>
-				<button
-					onclick={logout}
-					class="rounded-lg px-3 py-1.5 text-sm text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-200"
-				>
-					Logout
-				</button>
+				<div class="flex items-center gap-2">
+					<ThemeSwitcher />
+					<button
+						onclick={logout}
+						class="rounded-lg px-3 py-1.5 text-sm text-secondary transition-colors hover:bg-hover hover:text-primary"
+					>
+						Logout
+					</button>
+				</div>
 			</div>
 		</nav>
 		<main class="mx-auto max-w-screen-xl p-4">

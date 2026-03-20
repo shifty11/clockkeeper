@@ -14,6 +14,7 @@ var teamToProto = map[botc.Team]clockkeeperv1.Team{
 	botc.TeamDemon:     clockkeeperv1.Team_TEAM_DEMON,
 	botc.TeamTraveller: clockkeeperv1.Team_TEAM_TRAVELLER,
 	botc.TeamFabled:    clockkeeperv1.Team_TEAM_FABLED,
+	botc.TeamLoric:     clockkeeperv1.Team_TEAM_LORIC,
 }
 
 var protoToTeam = map[clockkeeperv1.Team]botc.Team{
@@ -23,6 +24,7 @@ var protoToTeam = map[clockkeeperv1.Team]botc.Team{
 	clockkeeperv1.Team_TEAM_DEMON:     botc.TeamDemon,
 	clockkeeperv1.Team_TEAM_TRAVELLER: botc.TeamTraveller,
 	clockkeeperv1.Team_TEAM_FABLED:    botc.TeamFabled,
+	clockkeeperv1.Team_TEAM_LORIC:     botc.TeamLoric,
 }
 
 var gameStateToProto = map[game.State]clockkeeperv1.GameState{
@@ -38,6 +40,7 @@ func characterToProto(c *botc.Character) *clockkeeperv1.Character {
 		Team:               teamToProto[c.Team],
 		Edition:            c.Edition,
 		Ability:            c.Ability,
+		Flavor:             c.Flavor,
 		Setup:              c.Setup,
 		Reminders:          c.Reminders,
 		RemindersGlobal:    c.RemindersGlobal,
@@ -46,6 +49,26 @@ func characterToProto(c *botc.Character) *clockkeeperv1.Character {
 		FirstNight:         int32(c.FirstNight),
 		OtherNight:         int32(c.OtherNight),
 	}
+}
+
+func characterToProtoWithJinxes(c *botc.Character, registry *botc.Registry) *clockkeeperv1.Character {
+	proto := characterToProto(c)
+	jinxes := registry.Jinxes(c.ID)
+	if len(jinxes) > 0 {
+		proto.Jinxes = make([]*clockkeeperv1.CharacterJinx, len(jinxes))
+		for i, j := range jinxes {
+			name := j.ID
+			if target, ok := registry.Character(j.ID); ok {
+				name = target.Name
+			}
+			proto.Jinxes[i] = &clockkeeperv1.CharacterJinx{
+				CharacterId:   j.ID,
+				CharacterName: name,
+				Reason:        j.Reason,
+			}
+		}
+	}
+	return proto
 }
 
 func charactersToProto(chars []*botc.Character) []*clockkeeperv1.Character {
@@ -73,6 +96,7 @@ func entScriptToProto(s *ent.Script, registry *botc.Registry) *clockkeeperv1.Scr
 func entGameToProto(g *ent.Game, registry *botc.Registry) *clockkeeperv1.Game {
 	chars := registry.Characters(g.SelectedRoles)
 	travellerChars := registry.Characters(g.SelectedTravellers)
+	extraChars := registry.Characters(g.ExtraCharacters)
 
 	var dist *clockkeeperv1.RoleDistribution
 	if d, err := botc.DistributionForPlayerCount(g.PlayerCount); err == nil {
@@ -85,9 +109,12 @@ func entGameToProto(g *ent.Game, registry *botc.Registry) *clockkeeperv1.Game {
 		}
 	}
 
-	// Collect reminder tokens from both regular and traveller characters.
+	// Collect reminder tokens from regular, traveller, and extra characters.
 	var tokens []*clockkeeperv1.ReminderToken
-	allChars := append(chars, travellerChars...)
+	allChars := make([]*botc.Character, 0, len(chars)+len(travellerChars)+len(extraChars))
+	allChars = append(allChars, chars...)
+	allChars = append(allChars, travellerChars...)
+	allChars = append(allChars, extraChars...)
 	for _, c := range allChars {
 		for _, r := range c.Reminders {
 			tokens = append(tokens, &clockkeeperv1.ReminderToken{
@@ -112,10 +139,12 @@ func entGameToProto(g *ent.Game, registry *botc.Registry) *clockkeeperv1.Game {
 		TravellerCount:              int32(g.TravellerCount),
 		SelectedRoleIds:             g.SelectedRoles,
 		SelectedTravellerIds:        g.SelectedTravellers,
+		ExtraCharacterIds:           g.ExtraCharacters,
 		State:                       gameStateToProto[g.State],
 		Distribution:                dist,
 		SelectedCharacters:          charactersToProto(chars),
 		SelectedTravellerCharacters: charactersToProto(travellerChars),
+		ExtraCharacterDetails:       charactersToProto(extraChars),
 		ReminderTokens:              tokens,
 	}
 }

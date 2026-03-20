@@ -31,6 +31,8 @@ const (
 	FieldSelectedRoles = "selected_roles"
 	// FieldSelectedTravellers holds the string denoting the selected_travellers field in the database.
 	FieldSelectedTravellers = "selected_travellers"
+	// FieldExtraCharacters holds the string denoting the extra_characters field in the database.
+	FieldExtraCharacters = "extra_characters"
 	// FieldState holds the string denoting the state field in the database.
 	FieldState = "state"
 	// EdgeOwner holds the string denoting the owner edge name in mutations.
@@ -66,6 +68,7 @@ var Columns = []string{
 	FieldTravellerCount,
 	FieldSelectedRoles,
 	FieldSelectedTravellers,
+	FieldExtraCharacters,
 	FieldState,
 }
 
@@ -92,6 +95,8 @@ var (
 	DefaultTravellerCount int
 	// TravellerCountValidator is a validator for the "traveller_count" field. It is called by the builders before save.
 	TravellerCountValidator func(int) error
+	// DefaultExtraCharacters holds the default value on creation for the "extra_characters" field.
+	DefaultExtraCharacters []string
 )
 
 // State defines the type for the "state" enum field.

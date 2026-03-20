@@ -68,6 +68,10 @@ func init() {
 			return nil
 		}
 	}()
+	// gameDescExtraCharacters is the schema descriptor for extra_characters field.
+	gameDescExtraCharacters := gameFields[6].Descriptor()
+	// game.DefaultExtraCharacters holds the default value on creation for the extra_characters field.
+	game.DefaultExtraCharacters = gameDescExtraCharacters.Default.([]string)
 	scriptMixin := schema.Script{}.Mixin()
 	scriptMixinFields0 := scriptMixin[0].Fields()
 	_ = scriptMixinFields0

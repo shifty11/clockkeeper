@@ -32,6 +32,7 @@ var migrationValidators = map[string]func(t *testing.T, ctx context.Context, db 
 	"20260316165946_add_script_soft_delete":          validateScriptSoftDelete,
 	"20260318105440_add_game_owner":                    validateGameOwner,
 	"20260318155946_add_script_owner_check":             validateScriptOwnerCheck,
+	"20260319100012_add_game_extra_characters":           validateGameExtraCharacters,
 }
 
 // TestMigrationCoverage ensures every migration file has a registered validator.
@@ -361,6 +362,19 @@ func validateScriptOwnerCheck(t *testing.T, ctx context.Context, db *sql.DB, _ *
 		t.Fatalf("expected CHECK constraint violation for ownerless non-system script")
 	} else if !strings.Contains(err.Error(), "chk_script_has_owner") {
 		t.Fatalf("expected chk_script_has_owner violation, got: %v", err)
+	}
+}
+
+// validateGameExtraCharacters checks that the extra_characters column exists and defaults to NULL.
+func validateGameExtraCharacters(t *testing.T, ctx context.Context, _ *sql.DB, client *ent.Client) {
+	t.Helper()
+
+	g, err := client.Game.Query().Only(ctx)
+	if err != nil {
+		t.Fatalf("failed to query game: %v", err)
+	}
+	if g.ExtraCharacters != nil && len(g.ExtraCharacters) != 0 {
+		t.Errorf("expected nil or empty extra_characters, got %v", g.ExtraCharacters)
 	}
 }
 

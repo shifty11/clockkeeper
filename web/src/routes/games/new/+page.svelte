@@ -104,15 +104,15 @@
 	<h1 class="text-2xl font-bold">New Game</h1>
 
 	{#if error}
-		<div class="rounded-lg bg-red-900/50 px-4 py-2 text-sm text-red-300">{error}</div>
+		<div class="rounded-lg bg-error-bg border border-error-border px-4 py-2 text-sm text-error-text">{error}</div>
 	{/if}
 
 	{#if loading}
-		<p class="text-gray-400">Loading...</p>
+		<p class="text-secondary">Loading...</p>
 	{:else}
 		<!-- Step 1: Pick script -->
 		<section class="space-y-3">
-			<h2 class="text-lg font-semibold text-gray-300">1. Choose a Script</h2>
+			<h2 class="text-lg font-semibold text-medium">1. Choose a Script</h2>
 
 			<!-- Edition templates -->
 			{#if editions.length > 0}
@@ -131,7 +131,7 @@
 								alt={edition.name}
 								class="h-16 object-contain"
 							/>
-							<p class="mt-3 text-sm text-gray-400">{edition.characterIds.length} characters</p>
+							<p class="mt-3 text-sm text-secondary">{edition.characterIds.length} characters</p>
 						</button>
 					{/each}
 				</div>
@@ -139,17 +139,17 @@
 
 			<!-- Saved scripts -->
 			{#if scripts.filter((s) => !s.isSystem).length > 0}
-				<p class="text-sm text-gray-500">Or choose a saved script:</p>
+				<p class="text-sm text-muted">Or choose a saved script:</p>
 				<div class="grid gap-2 sm:grid-cols-2">
 					{#each scripts.filter((s) => !s.isSystem) as script (script.id)}
 						<button
 							onclick={() => (selectedScriptId = script.id)}
-							class="rounded-lg border p-3 text-left transition-colors {selectedScriptId === script.id
+							class="card-slate rounded-lg border p-3 text-left transition-colors {selectedScriptId === script.id
 								? 'border-indigo-500 bg-indigo-500/10'
-								: 'border-gray-700 bg-gray-900 hover:border-gray-600'}"
+								: 'border-border bg-surface hover:border-border-strong'}"
 						>
-							<span class="font-medium text-white">{script.name}</span>
-							<span class="ml-2 text-sm text-gray-400">{script.characterIds.length} chars</span>
+							<span class="font-medium text-primary">{script.name}</span>
+							<span class="ml-2 text-sm text-secondary">{script.characterIds.length} chars</span>
 						</button>
 					{/each}
 				</div>
@@ -159,14 +159,14 @@
 		<!-- Step 2: Player count -->
 		{#if selectedScriptId}
 			<section class="space-y-3">
-				<h2 class="text-lg font-semibold text-gray-300">2. How many people?</h2>
+				<h2 class="text-lg font-semibold text-medium">2. How many people?</h2>
 				<div class="flex flex-wrap gap-2">
 					{#each Array.from({ length: 16 }, (_, i) => i + 5) as n}
 						<button
 							onclick={() => (totalCount = n)}
 							class="h-10 w-10 rounded-lg text-sm font-medium transition-colors {totalCount === n
 								? 'bg-indigo-500 text-white'
-								: 'border border-gray-700 bg-gray-900 text-gray-300 hover:bg-gray-800'}"
+								: 'border border-border bg-surface text-medium hover:bg-hover'}"
 						>
 							{n}
 						</button>
@@ -174,14 +174,14 @@
 				</div>
 
 				{#if totalCount > 15}
-					<p class="text-sm text-gray-400">
+					<p class="text-sm text-secondary">
 						Max 15 players — {totalCount - 15} will be {totalCount - 15 === 1 ? 'a traveller' : 'travellers'}
 					</p>
 				{/if}
 
 				{#if currentDist}
-					<div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
-						<p class="mb-2 text-sm text-gray-400">Expected distribution for {playerCount} players:</p>
+					<div class="rounded-lg border border-border bg-surface p-4">
+						<p class="mb-2 text-sm text-secondary">Expected distribution for {playerCount} players:</p>
 						<DistributionBar current={{ townsfolk: currentDist.townsfolk, outsiders: currentDist.outsiders, minions: currentDist.minions, demons: currentDist.demons }} travellers={travellerCount} />
 					</div>
 				{/if}
@@ -189,30 +189,30 @@
 
 			<!-- Step 3: Travellers -->
 			<section class="space-y-3">
-				<h2 class="text-lg font-semibold text-gray-300">3. Travellers</h2>
+				<h2 class="text-lg font-semibold text-medium">3. Travellers</h2>
 				<div class="flex items-center gap-3">
 					<button
 						onclick={() => (travellerCount = Math.max(minTravellers, travellerCount - 1))}
 						disabled={travellerCount <= minTravellers}
-						class="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-700 bg-gray-900 text-lg font-medium text-gray-300 transition-colors hover:bg-gray-800 disabled:opacity-30"
+						class="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-lg font-medium text-medium transition-colors hover:bg-hover disabled:opacity-30"
 					>
 						-
 					</button>
-					<span class="w-8 text-center text-lg font-medium text-white">{travellerCount}</span>
+					<span class="w-8 text-center text-lg font-medium text-primary">{travellerCount}</span>
 					<button
 						onclick={() => (travellerCount = travellerCount + 1)}
 						disabled={totalPeople >= 25}
-						class="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-700 bg-gray-900 text-lg font-medium text-gray-300 transition-colors hover:bg-gray-800 disabled:opacity-30"
+						class="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-lg font-medium text-medium transition-colors hover:bg-hover disabled:opacity-30"
 					>
 						+
 					</button>
-					<span class="text-sm text-gray-400">
+					<span class="text-sm text-secondary">
 						Total: {totalPeople} {totalPeople === 1 ? 'person' : 'people'}
 					</span>
 				</div>
 
 				{#if showTotalWarning}
-					<div class="rounded-lg border border-yellow-700/50 bg-yellow-900/30 px-4 py-2 text-sm text-yellow-300">
+					<div class="rounded-lg border border-warning-border bg-warning-bg px-4 py-2 text-sm text-warning-text">
 						The recommended maximum is 20 players. Games with more players may be harder to manage.
 					</div>
 				{/if}
@@ -223,7 +223,7 @@
 				<button
 					onclick={createGame}
 					disabled={creating || !selectedScriptId}
-					class="rounded-lg bg-indigo-500 px-6 py-2.5 font-medium text-white transition-colors hover:bg-indigo-400 disabled:opacity-50"
+					class="btn-primary rounded-lg bg-indigo-500 px-6 py-2.5 font-medium text-white transition-colors hover:bg-indigo-400 disabled:opacity-50"
 				>
 					{creating ? 'Creating...' : 'Create Game'}
 				</button>

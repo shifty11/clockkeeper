@@ -30,7 +30,7 @@
 
 	function scriptCardStyle(eds: string[]): { classes: string; inlineStyle: string } {
 		if (eds.length === 0) {
-			return { classes: 'border-gray-700 bg-gray-900', inlineStyle: '' };
+			return { classes: 'border-border bg-surface', inlineStyle: '' };
 		}
 		if (eds.length === 1) {
 			const s = editionStyle(eds[0]);
@@ -119,13 +119,13 @@
 		<div class="flex gap-2">
 			<button
 				onclick={() => (showImport = !showImport)}
-				class="rounded-lg border border-gray-700 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-gray-800"
+				class="btn-secondary rounded-lg border border-border px-3 py-1.5 text-sm text-medium transition-colors hover:bg-hover"
 			>
 				Import JSON
 			</button>
 			<button
 				onclick={createCustom}
-				class="rounded-lg bg-indigo-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-indigo-400"
+				class="btn-primary rounded-lg bg-indigo-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-indigo-400"
 			>
 				New Script
 			</button>
@@ -133,25 +133,25 @@
 	</div>
 
 	{#if error}
-		<div class="rounded-lg bg-red-900/50 px-4 py-2 text-sm text-red-300">{error}</div>
+		<div class="rounded-lg bg-error-bg px-4 py-2 text-sm text-error-text">{error}</div>
 	{/if}
 
 	{#if showImport}
-		<div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
-			<h2 class="mb-2 text-sm font-medium text-gray-300">Import Script JSON</h2>
+		<div class="card-slate rounded-lg border border-border bg-surface p-4">
+			<h2 class="mb-2 text-sm font-medium text-medium">Import Script JSON</h2>
 			<textarea
 				bind:value={importJson}
 				placeholder='Paste official script JSON (e.g. [&#123;"id":"_meta","name":"My Script"&#125;,"washerwoman","librarian",...])'
-				class="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-indigo-400 focus:outline-none"
+				class="w-full rounded-lg border border-border bg-surface-alt px-3 py-2 text-sm text-primary placeholder-muted focus:border-indigo-400 focus:outline-none"
 				rows="4"
 			></textarea>
 			{#if importError}
-				<p class="mt-1 text-sm text-red-400">{importError}</p>
+				<p class="mt-1 text-sm text-error-text">{importError}</p>
 			{/if}
 			<button
 				onclick={importScript}
 				disabled={!importJson.trim()}
-				class="mt-2 rounded-lg bg-indigo-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-indigo-400 disabled:opacity-50"
+				class="btn-primary mt-2 rounded-lg bg-indigo-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-indigo-400 disabled:opacity-50"
 			>
 				Import
 			</button>
@@ -159,12 +159,12 @@
 	{/if}
 
 	{#if loading}
-		<p class="text-gray-400">Loading...</p>
+		<p class="text-secondary">Loading...</p>
 	{:else}
 		<!-- Base editions (system scripts) -->
 		{#if systemScripts.length > 0}
 			<section>
-				<h2 class="mb-3 text-lg font-semibold text-gray-300">Base Editions</h2>
+				<h2 class="mb-3 text-lg font-semibold text-medium">Base Editions</h2>
 				<div class="grid gap-3 sm:grid-cols-3">
 					{#each systemScripts as sysScript (sysScript.id)}
 						{@const style = editionStyle(sysScript.edition)}
@@ -177,7 +177,7 @@
 								alt={sysScript.name}
 								class="h-16 object-contain"
 							/>
-							<p class="mt-3 text-sm text-gray-400">{sysScript.characterIds.length} characters</p>
+							<p class="mt-3 text-sm text-secondary">{sysScript.characterIds.length} characters</p>
 						</a>
 					{/each}
 				</div>
@@ -186,21 +186,21 @@
 
 		<!-- User scripts -->
 		<section>
-			<h2 class="mb-3 text-lg font-semibold text-gray-300">Your Scripts</h2>
+			<h2 class="mb-3 text-lg font-semibold text-medium">Your Scripts</h2>
 			{#if userScripts.length === 0}
-				<p class="text-gray-500">No saved scripts yet. Create one from an edition or start from scratch.</p>
+				<p class="text-muted">No saved scripts yet. Create one from an edition or start from scratch.</p>
 			{:else}
 				<div class="space-y-2">
 					{#each userScripts as script (script.id)}
 						{@const eds = getScriptEditions(script)}
 						{@const cardStyle = scriptCardStyle(eds)}
 						<div
-							class="flex items-center justify-between rounded-lg border {cardStyle.classes} px-4 py-3 transition-colors"
+							class="card-slate flex items-center justify-between rounded-lg border {cardStyle.classes} px-4 py-3 transition-colors"
 							style={cardStyle.inlineStyle}
 						>
 							<a href="/scripts/{script.id}" class="min-w-0 flex-1">
-								<span class="font-medium text-white">{script.name}</span>
-								<p class="text-sm text-gray-400">{script.characterIds.length} characters</p>
+								<span class="font-medium text-primary">{script.name}</span>
+								<p class="text-sm text-secondary">{script.characterIds.length} characters</p>
 							</a>
 							<div class="ml-2 flex items-center gap-2">
 								{#if eds.length > 0}
@@ -217,7 +217,7 @@
 								<button
 									onclick={() => deleteScript(script.id)}
 									aria-label="Delete {script.name}"
-									class="rounded p-1.5 text-gray-500 transition-colors hover:bg-gray-800/50 hover:text-red-400"
+									class="rounded p-1.5 text-muted transition-colors hover:bg-hover hover:text-red-500"
 								>
 									<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

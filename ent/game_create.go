@@ -94,6 +94,12 @@ func (_c *GameCreate) SetSelectedTravellers(v []string) *GameCreate {
 	return _c
 }
 
+// SetExtraCharacters sets the "extra_characters" field.
+func (_c *GameCreate) SetExtraCharacters(v []string) *GameCreate {
+	_c.mutation.SetExtraCharacters(v)
+	return _c
+}
+
 // SetState sets the "state" field.
 func (_c *GameCreate) SetState(v game.State) *GameCreate {
 	_c.mutation.SetState(v)
@@ -170,6 +176,10 @@ func (_c *GameCreate) defaults() {
 	if _, ok := _c.mutation.TravellerCount(); !ok {
 		v := game.DefaultTravellerCount
 		_c.mutation.SetTravellerCount(v)
+	}
+	if _, ok := _c.mutation.ExtraCharacters(); !ok {
+		v := game.DefaultExtraCharacters
+		_c.mutation.SetExtraCharacters(v)
 	}
 	if _, ok := _c.mutation.State(); !ok {
 		v := game.DefaultState
@@ -276,6 +286,10 @@ func (_c *GameCreate) createSpec() (*Game, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.SelectedTravellers(); ok {
 		_spec.SetField(game.FieldSelectedTravellers, field.TypeJSON, value)
 		_node.SelectedTravellers = value
+	}
+	if value, ok := _c.mutation.ExtraCharacters(); ok {
+		_spec.SetField(game.FieldExtraCharacters, field.TypeJSON, value)
+		_node.ExtraCharacters = value
 	}
 	if value, ok := _c.mutation.State(); ok {
 		_spec.SetField(game.FieldState, field.TypeEnum, value)

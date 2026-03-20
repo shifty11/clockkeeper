@@ -26,6 +26,7 @@ func (Game) Fields() []ent.Field {
 		field.Int("traveller_count").Min(0).Max(20).Default(0),
 		field.JSON("selected_roles", []string{}),
 		field.JSON("selected_travellers", []string{}),
+		field.JSON("extra_characters", []string{}).Optional().Default([]string{}),
 		field.Enum("state").
 			Values("setup", "in_progress", "completed").
 			Default("setup"),
