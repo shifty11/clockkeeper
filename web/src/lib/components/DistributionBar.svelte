@@ -12,10 +12,10 @@
 	} = $props();
 
 	const baseTeams = [
-		{ key: 'townsfolk' as const, label: 'Townsfolk', color: 'bg-blue-500' },
-		{ key: 'outsiders' as const, label: 'Outsiders', color: 'bg-cyan-500' },
-		{ key: 'minions' as const, label: 'Minions', color: 'bg-orange-500' },
-		{ key: 'demons' as const, label: 'Demons', color: 'bg-red-500' }
+		{ key: 'townsfolk' as const, label: 'Townsfolk', team: 'townsfolk', color: 'bg-blue-600' },
+		{ key: 'outsiders' as const, label: 'Outsiders', team: 'outsider', color: 'bg-cyan-600' },
+		{ key: 'minions' as const, label: 'Minions', team: 'minion', color: 'bg-orange-600' },
+		{ key: 'demons' as const, label: 'Demons', team: 'demon', color: 'bg-red-600' }
 	];
 
 	const total = $derived(current.townsfolk + current.outsiders + current.minions + current.demons + travellers);
@@ -23,19 +23,21 @@
 
 <div class="space-y-2">
 	{#if total > 0}
-		<div class="flex h-3 overflow-hidden rounded-full bg-gray-800">
+		<div class="flex gap-0.5 h-3 overflow-hidden rounded-full bg-element">
 			{#each baseTeams as team}
 				{@const count = current[team.key]}
 				{#if count > 0}
 					<div
-						class="{team.color} transition-all duration-300"
+						class="card-slate {team.color} transition-all duration-300"
+						data-team={team.team}
 						style="width: {(count / total) * 100}%"
 					></div>
 				{/if}
 			{/each}
 			{#if travellers > 0}
 				<div
-					class="bg-yellow-500 transition-all duration-300"
+					class="card-slate bg-gradient-to-r from-blue-600 to-red-600 transition-all duration-300"
+					data-team="traveller"
 					style="width: {(travellers / total) * 100}%"
 				></div>
 			{/if}
@@ -46,10 +48,13 @@
 			{@const count = current[team.key]}
 			{@const exp = expected ? expected[team.key] : undefined}
 			<div class="flex items-center gap-1.5">
-				<div class="h-2.5 w-2.5 rounded-full {team.color}"></div>
-				<span class="text-gray-400">{team.label}</span>
+				<div
+					class="card-slate h-2.5 w-2.5 rounded-full {team.color} overflow-hidden"
+					data-team={team.team}
+				></div>
+				<span class="text-secondary">{team.label}</span>
 				<span
-					class={exp !== undefined && count !== exp ? 'font-medium text-red-400' : 'text-gray-300'}
+					class={exp !== undefined && count !== exp ? 'font-medium text-red-600' : 'text-medium'}
 				>
 					{count}{exp !== undefined ? `/${exp}` : ''}
 				</span>
@@ -57,14 +62,17 @@
 		{/each}
 		{#if travellers > 0}
 			<div class="flex items-center gap-1.5">
-				<div class="h-2.5 w-2.5 rounded-full bg-yellow-500"></div>
-				<span class="text-gray-400">Travellers</span>
-				<span class="text-gray-300">{travellers}</span>
+				<div
+					class="card-slate h-2.5 w-2.5 rounded-full bg-gradient-to-r from-blue-600 to-red-600 overflow-hidden"
+					data-team="traveller"
+				></div>
+				<span class="text-secondary">Travellers</span>
+				<span class="text-medium">{travellers}</span>
 			</div>
 		{/if}
 		<div class="flex items-center gap-1.5 ml-auto">
-			<span class="text-gray-500">Total</span>
-			<span class="font-medium text-gray-300">{total}</span>
+			<span class="text-muted">Total</span>
+			<span class="font-medium text-medium">{total}</span>
 		</div>
 	</div>
 </div>

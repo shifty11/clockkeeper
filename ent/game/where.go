@@ -285,6 +285,16 @@ func TravellerCountLTE(v int) predicate.Game {
 	return predicate.Game(sql.FieldLTE(FieldTravellerCount, v))
 }
 
+// ExtraCharactersIsNil applies the IsNil predicate on the "extra_characters" field.
+func ExtraCharactersIsNil() predicate.Game {
+	return predicate.Game(sql.FieldIsNull(FieldExtraCharacters))
+}
+
+// ExtraCharactersNotNil applies the NotNil predicate on the "extra_characters" field.
+func ExtraCharactersNotNil() predicate.Game {
+	return predicate.Game(sql.FieldNotNull(FieldExtraCharacters))
+}
+
 // StateEQ applies the EQ predicate on the "state" field.
 func StateEQ(v State) predicate.Game {
 	return predicate.Game(sql.FieldEQ(FieldState, v))

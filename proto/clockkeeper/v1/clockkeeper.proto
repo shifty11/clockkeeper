@@ -10,6 +10,7 @@ service ClockKeeperService {
 
   // Characters (read-only, from embedded data)
   rpc ListCharacters(ListCharactersRequest) returns (ListCharactersResponse) {}
+  rpc GetCharacter(GetCharacterRequest) returns (GetCharacterResponse) {}
 
   // Editions (templates for creating scripts)
   rpc ListEditions(ListEditionsRequest) returns (ListEditionsResponse) {}
@@ -29,6 +30,7 @@ service ClockKeeperService {
   rpc RandomizeRoles(RandomizeRolesRequest) returns (RandomizeRolesResponse) {}
   rpc UpdateGameRoles(UpdateGameRolesRequest) returns (UpdateGameRolesResponse) {}
   rpc UpdateGameTravellers(UpdateGameTravellersRequest) returns (UpdateGameTravellersResponse) {}
+  rpc UpdateGameExtraCharacters(UpdateGameExtraCharactersRequest) returns (UpdateGameExtraCharactersResponse) {}
   rpc GetSetupChecklist(GetSetupChecklistRequest) returns (GetSetupChecklistResponse) {}
   rpc GetDistribution(GetDistributionRequest) returns (GetDistributionResponse) {}
 }
@@ -50,6 +52,7 @@ enum Team {
   TEAM_DEMON = 4;
   TEAM_TRAVELLER = 5;
   TEAM_FABLED = 6;
+  TEAM_LORIC = 7;
 }
 
 // --- Auth ---
@@ -78,6 +81,22 @@ message Character {
   string other_night_reminder = 10;
   int32 first_night = 11;
   int32 other_night = 12;
+  string flavor = 13;
+  repeated CharacterJinx jinxes = 14;
+}
+
+message CharacterJinx {
+  string character_id = 1;
+  string character_name = 2;
+  string reason = 3;
+}
+
+message GetCharacterRequest {
+  string id = 1;
+}
+
+message GetCharacterResponse {
+  Character character = 1;
 }
 
 message ListCharactersRequest {
@@ -197,6 +216,8 @@ message Game {
   int32 traveller_count = 9;
   repeated string selected_traveller_ids = 10;
   repeated Character selected_traveller_characters = 11;
+  repeated string extra_character_ids = 12;
+  repeated Character extra_character_details = 13;
 }
 
 message CreateGameRequest {
@@ -240,6 +261,15 @@ message UpdateGameTravellersRequest {
 }
 
 message UpdateGameTravellersResponse {
+  Game game = 1;
+}
+
+message UpdateGameExtraCharactersRequest {
+  int64 game_id = 1;
+  repeated string extra_character_ids = 2;
+}
+
+message UpdateGameExtraCharactersResponse {
   Game game = 1;
 }
 

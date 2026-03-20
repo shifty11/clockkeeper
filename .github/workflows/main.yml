@@ -1,0 +1,23 @@
+name: Main
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: test
+    uses: ./.github/workflows/build.yml
+    with:
+      push_image: true
+      tag_as_latest: true
+
+  deploy:
+    needs: build
+    uses: ./.github/workflows/deploy.yml
+    with:
+      image_tag: ${{ needs.build.outputs.image_tag }}
+    secrets: inherit

@@ -131,6 +131,24 @@ func (_u *GameUpdate) AppendSelectedTravellers(v []string) *GameUpdate {
 	return _u
 }
 
+// SetExtraCharacters sets the "extra_characters" field.
+func (_u *GameUpdate) SetExtraCharacters(v []string) *GameUpdate {
+	_u.mutation.SetExtraCharacters(v)
+	return _u
+}
+
+// AppendExtraCharacters appends value to the "extra_characters" field.
+func (_u *GameUpdate) AppendExtraCharacters(v []string) *GameUpdate {
+	_u.mutation.AppendExtraCharacters(v)
+	return _u
+}
+
+// ClearExtraCharacters clears the value of the "extra_characters" field.
+func (_u *GameUpdate) ClearExtraCharacters() *GameUpdate {
+	_u.mutation.ClearExtraCharacters()
+	return _u
+}
+
 // SetState sets the "state" field.
 func (_u *GameUpdate) SetState(v game.State) *GameUpdate {
 	_u.mutation.SetState(v)
@@ -282,6 +300,17 @@ func (_u *GameUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, game.FieldSelectedTravellers, value)
 		})
+	}
+	if value, ok := _u.mutation.ExtraCharacters(); ok {
+		_spec.SetField(game.FieldExtraCharacters, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedExtraCharacters(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, game.FieldExtraCharacters, value)
+		})
+	}
+	if _u.mutation.ExtraCharactersCleared() {
+		_spec.ClearField(game.FieldExtraCharacters, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.State(); ok {
 		_spec.SetField(game.FieldState, field.TypeEnum, value)
@@ -461,6 +490,24 @@ func (_u *GameUpdateOne) SetSelectedTravellers(v []string) *GameUpdateOne {
 // AppendSelectedTravellers appends value to the "selected_travellers" field.
 func (_u *GameUpdateOne) AppendSelectedTravellers(v []string) *GameUpdateOne {
 	_u.mutation.AppendSelectedTravellers(v)
+	return _u
+}
+
+// SetExtraCharacters sets the "extra_characters" field.
+func (_u *GameUpdateOne) SetExtraCharacters(v []string) *GameUpdateOne {
+	_u.mutation.SetExtraCharacters(v)
+	return _u
+}
+
+// AppendExtraCharacters appends value to the "extra_characters" field.
+func (_u *GameUpdateOne) AppendExtraCharacters(v []string) *GameUpdateOne {
+	_u.mutation.AppendExtraCharacters(v)
+	return _u
+}
+
+// ClearExtraCharacters clears the value of the "extra_characters" field.
+func (_u *GameUpdateOne) ClearExtraCharacters() *GameUpdateOne {
+	_u.mutation.ClearExtraCharacters()
 	return _u
 }
 
@@ -645,6 +692,17 @@ func (_u *GameUpdateOne) sqlSave(ctx context.Context) (_node *Game, err error) {
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, game.FieldSelectedTravellers, value)
 		})
+	}
+	if value, ok := _u.mutation.ExtraCharacters(); ok {
+		_spec.SetField(game.FieldExtraCharacters, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedExtraCharacters(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, game.FieldExtraCharacters, value)
+		})
+	}
+	if _u.mutation.ExtraCharactersCleared() {
+		_spec.ClearField(game.FieldExtraCharacters, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.State(); ok {
 		_spec.SetField(game.FieldState, field.TypeEnum, value)

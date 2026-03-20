@@ -190,13 +190,42 @@ func (h *ClockKeeperServiceHandler) UpdateGameTravellers(ctx context.Context, re
 	}), nil
 }
 
+func (h *ClockKeeperServiceHandler) UpdateGameExtraCharacters(ctx context.Context, req *connect.Request[clockkeeperv1.UpdateGameExtraCharactersRequest]) (*connect.Response[clockkeeperv1.UpdateGameExtraCharactersResponse], error) {
+	g, err := h.getOwnedGame(ctx, int(req.Msg.GameId))
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate all IDs exist.
+	for _, id := range req.Msg.ExtraCharacterIds {
+		if _, ok := h.registry.Character(id); !ok {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown character: %s", id))
+		}
+	}
+
+	g, err = g.Update().
+		SetExtraCharacters(req.Msg.ExtraCharacterIds).
+		Save(ctx)
+	if err != nil {
+		slog.Error("save updated extra characters failed", "err", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
+	}
+
+	return connect.NewResponse(&clockkeeperv1.UpdateGameExtraCharactersResponse{
+		Game: entGameToProto(g, h.registry),
+	}), nil
+}
+
 func (h *ClockKeeperServiceHandler) GetSetupChecklist(ctx context.Context, req *connect.Request[clockkeeperv1.GetSetupChecklistRequest]) (*connect.Response[clockkeeperv1.GetSetupChecklistResponse], error) {
 	g, err := h.getOwnedGame(ctx, int(req.Msg.GameId))
 	if err != nil {
 		return nil, err
 	}
 
-	chars := h.registry.Characters(g.SelectedRoles)
+	allCharIDs := make([]string, 0, len(g.SelectedRoles)+len(g.ExtraCharacters))
+	allCharIDs = append(allCharIDs, g.SelectedRoles...)
+	allCharIDs = append(allCharIDs, g.ExtraCharacters...)
+	chars := h.registry.Characters(allCharIDs)
 	steps := botc.GenerateSetupChecklist(chars, h.registry)
 
 	protoSteps := make([]*clockkeeperv1.SetupStep, len(steps))

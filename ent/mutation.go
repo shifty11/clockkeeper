@@ -47,6 +47,8 @@ type GameMutation struct {
 	appendselected_roles      []string
 	selected_travellers       *[]string
 	appendselected_travellers []string
+	extra_characters          *[]string
+	appendextra_characters    []string
 	state                     *game.State
 	clearedFields             map[string]struct{}
 	owner                     *int
@@ -514,6 +516,71 @@ func (m *GameMutation) ResetSelectedTravellers() {
 	m.appendselected_travellers = nil
 }
 
+// SetExtraCharacters sets the "extra_characters" field.
+func (m *GameMutation) SetExtraCharacters(s []string) {
+	m.extra_characters = &s
+	m.appendextra_characters = nil
+}
+
+// ExtraCharacters returns the value of the "extra_characters" field in the mutation.
+func (m *GameMutation) ExtraCharacters() (r []string, exists bool) {
+	v := m.extra_characters
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExtraCharacters returns the old "extra_characters" field's value of the Game entity.
+// If the Game object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GameMutation) OldExtraCharacters(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExtraCharacters is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExtraCharacters requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExtraCharacters: %w", err)
+	}
+	return oldValue.ExtraCharacters, nil
+}
+
+// AppendExtraCharacters adds s to the "extra_characters" field.
+func (m *GameMutation) AppendExtraCharacters(s []string) {
+	m.appendextra_characters = append(m.appendextra_characters, s...)
+}
+
+// AppendedExtraCharacters returns the list of values that were appended to the "extra_characters" field in this mutation.
+func (m *GameMutation) AppendedExtraCharacters() ([]string, bool) {
+	if len(m.appendextra_characters) == 0 {
+		return nil, false
+	}
+	return m.appendextra_characters, true
+}
+
+// ClearExtraCharacters clears the value of the "extra_characters" field.
+func (m *GameMutation) ClearExtraCharacters() {
+	m.extra_characters = nil
+	m.appendextra_characters = nil
+	m.clearedFields[game.FieldExtraCharacters] = struct{}{}
+}
+
+// ExtraCharactersCleared returns if the "extra_characters" field was cleared in this mutation.
+func (m *GameMutation) ExtraCharactersCleared() bool {
+	_, ok := m.clearedFields[game.FieldExtraCharacters]
+	return ok
+}
+
+// ResetExtraCharacters resets all changes to the "extra_characters" field.
+func (m *GameMutation) ResetExtraCharacters() {
+	m.extra_characters = nil
+	m.appendextra_characters = nil
+	delete(m.clearedFields, game.FieldExtraCharacters)
+}
+
 // SetState sets the "state" field.
 func (m *GameMutation) SetState(ga game.State) {
 	m.state = &ga
@@ -651,7 +718,7 @@ func (m *GameMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GameMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.created_at != nil {
 		fields = append(fields, game.FieldCreatedAt)
 	}
@@ -675,6 +742,9 @@ func (m *GameMutation) Fields() []string {
 	}
 	if m.selected_travellers != nil {
 		fields = append(fields, game.FieldSelectedTravellers)
+	}
+	if m.extra_characters != nil {
+		fields = append(fields, game.FieldExtraCharacters)
 	}
 	if m.state != nil {
 		fields = append(fields, game.FieldState)
@@ -703,6 +773,8 @@ func (m *GameMutation) Field(name string) (ent.Value, bool) {
 		return m.SelectedRoles()
 	case game.FieldSelectedTravellers:
 		return m.SelectedTravellers()
+	case game.FieldExtraCharacters:
+		return m.ExtraCharacters()
 	case game.FieldState:
 		return m.State()
 	}
@@ -730,6 +802,8 @@ func (m *GameMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldSelectedRoles(ctx)
 	case game.FieldSelectedTravellers:
 		return m.OldSelectedTravellers(ctx)
+	case game.FieldExtraCharacters:
+		return m.OldExtraCharacters(ctx)
 	case game.FieldState:
 		return m.OldState(ctx)
 	}
@@ -797,6 +871,13 @@ func (m *GameMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetSelectedTravellers(v)
 		return nil
+	case game.FieldExtraCharacters:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExtraCharacters(v)
+		return nil
 	case game.FieldState:
 		v, ok := value.(game.State)
 		if !ok {
@@ -860,7 +941,11 @@ func (m *GameMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *GameMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(game.FieldExtraCharacters) {
+		fields = append(fields, game.FieldExtraCharacters)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -873,6 +958,11 @@ func (m *GameMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *GameMutation) ClearField(name string) error {
+	switch name {
+	case game.FieldExtraCharacters:
+		m.ClearExtraCharacters()
+		return nil
+	}
 	return fmt.Errorf("unknown Game nullable field %s", name)
 }
 
@@ -903,6 +993,9 @@ func (m *GameMutation) ResetField(name string) error {
 		return nil
 	case game.FieldSelectedTravellers:
 		m.ResetSelectedTravellers()
+		return nil
+	case game.FieldExtraCharacters:
+		m.ResetExtraCharacters()
 		return nil
 	case game.FieldState:
 		m.ResetState()

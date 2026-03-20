@@ -36,6 +36,8 @@ type Game struct {
 	SelectedRoles []string `json:"selected_roles,omitempty"`
 	// SelectedTravellers holds the value of the "selected_travellers" field.
 	SelectedTravellers []string `json:"selected_travellers,omitempty"`
+	// ExtraCharacters holds the value of the "extra_characters" field.
+	ExtraCharacters []string `json:"extra_characters,omitempty"`
 	// State holds the value of the "state" field.
 	State game.State `json:"state,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -82,7 +84,7 @@ func (*Game) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case game.FieldSelectedRoles, game.FieldSelectedTravellers:
+		case game.FieldSelectedRoles, game.FieldSelectedTravellers, game.FieldExtraCharacters:
 			values[i] = new([]byte)
 		case game.FieldID, game.FieldUserID, game.FieldScriptID, game.FieldPlayerCount, game.FieldTravellerCount:
 			values[i] = new(sql.NullInt64)
@@ -163,6 +165,14 @@ func (_m *Game) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field selected_travellers: %w", err)
 				}
 			}
+		case game.FieldExtraCharacters:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field extra_characters", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.ExtraCharacters); err != nil {
+					return fmt.Errorf("unmarshal field extra_characters: %w", err)
+				}
+			}
 		case game.FieldState:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field state", values[i])
@@ -238,6 +248,9 @@ func (_m *Game) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("selected_travellers=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SelectedTravellers))
+	builder.WriteString(", ")
+	builder.WriteString("extra_characters=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ExtraCharacters))
 	builder.WriteString(", ")
 	builder.WriteString("state=")
 	builder.WriteString(fmt.Sprintf("%v", _m.State))

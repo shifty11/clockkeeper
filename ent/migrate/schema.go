@@ -17,6 +17,7 @@ var (
 		{Name: "traveller_count", Type: field.TypeInt, Default: 0},
 		{Name: "selected_roles", Type: field.TypeJSON},
 		{Name: "selected_travellers", Type: field.TypeJSON},
+		{Name: "extra_characters", Type: field.TypeJSON, Nullable: true},
 		{Name: "state", Type: field.TypeEnum, Enums: []string{"setup", "in_progress", "completed"}, Default: "setup"},
 		{Name: "script_id", Type: field.TypeInt},
 		{Name: "user_id", Type: field.TypeInt},
@@ -29,13 +30,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "games_scripts_games",
-				Columns:    []*schema.Column{GamesColumns[8]},
+				Columns:    []*schema.Column{GamesColumns[9]},
 				RefColumns: []*schema.Column{ScriptsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "games_users_games",
-				Columns:    []*schema.Column{GamesColumns[9]},
+				Columns:    []*schema.Column{GamesColumns[10]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},

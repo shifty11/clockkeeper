@@ -1,0 +1,40 @@
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      image_tag:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        type: string
+        required: true
+        description: 'Docker image tag to deploy (e.g., ghcr.io/loomi-labs/clockkeeper:sha-abc123)'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          CLOCKKEEPER_DIR: ${{ vars.CLOCKKEEPER_DIR }}
+        with:
+          host: ${{ vars.DEPLOY_HOST }}
+          username: deploy
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          fingerprint: ${{ vars.DEPLOY_HOST_FINGERPRINT }}
+          port: 22
+          script_stop: true
+          envs: GITHUB_TOKEN,IMAGE_TAG,CLOCKKEEPER_DIR
+          script: |
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            docker pull "$IMAGE_TAG"
+            cd "$CLOCKKEEPER_DIR"
+            docker stack deploy --detach=false --with-registry-auth -c clockkeeper.yml clockkeeper
