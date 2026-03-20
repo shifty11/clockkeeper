@@ -1,4 +1,4 @@
-# Stage 1: Generate protobuf TypeScript code
+# Stage 1: Generate protobuf code
 FROM bufbuild/buf:latest AS protogen
 WORKDIR /app
 COPY buf.yaml buf.gen.yaml ./
@@ -22,6 +22,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
+COPY --from=protogen /app/gen/ ./gen/
 COPY --from=frontend /app/web/build ./web/build
 RUN go build -o clockkeeper ./cmd/
 
