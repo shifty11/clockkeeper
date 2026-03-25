@@ -638,43 +638,44 @@ func (m *DeathMutation) ResetEdge(name string) error {
 // GameMutation represents an operation that mutates the Game nodes in the graph.
 type GameMutation struct {
 	config
-	op                        Op
-	typ                       string
-	id                        *int
-	created_at                *time.Time
-	updated_at                *time.Time
-	name                      *string
-	player_count              *int
-	addplayer_count           *int
-	traveller_count           *int
-	addtraveller_count        *int
-	selected_roles            *[]string
-	appendselected_roles      []string
-	selected_travellers       *[]string
-	appendselected_travellers []string
-	extra_characters          *[]string
-	appendextra_characters    []string
-	selected_bluffs           *[]string
-	appendselected_bluffs     []string
-	traveller_alignments      *map[string]schema.TravellerAlignment
-	grimoire_positions        *map[string]schema.GrimoirePosition
-	grimoire_player_names     *map[string]string
-	grimoire_game_notes       *map[string]string
-	grimoire_round_notes      *map[string]string
-	bag_substitutions         *[]schema.GameBagSubstitution
-	appendbag_substitutions   []schema.GameBagSubstitution
-	state                     *game.State
-	clearedFields             map[string]struct{}
-	owner                     *int
-	clearedowner              bool
-	script                    *int
-	clearedscript             bool
-	phases                    map[int]struct{}
-	removedphases             map[int]struct{}
-	clearedphases             bool
-	done                      bool
-	oldValue                  func(context.Context) (*Game, error)
-	predicates                []predicate.Game
+	op                            Op
+	typ                           string
+	id                            *int
+	created_at                    *time.Time
+	updated_at                    *time.Time
+	name                          *string
+	player_count                  *int
+	addplayer_count               *int
+	traveller_count               *int
+	addtraveller_count            *int
+	selected_roles                *[]string
+	appendselected_roles          []string
+	selected_travellers           *[]string
+	appendselected_travellers     []string
+	extra_characters              *[]string
+	appendextra_characters        []string
+	selected_bluffs               *[]string
+	appendselected_bluffs         []string
+	traveller_alignments          *map[string]schema.TravellerAlignment
+	grimoire_positions            *map[string]schema.GrimoirePosition
+	grimoire_player_names         *map[string]string
+	grimoire_game_notes           *map[string]string
+	grimoire_round_notes          *map[string]string
+	bag_substitutions             *[]schema.GameBagSubstitution
+	appendbag_substitutions       []schema.GameBagSubstitution
+	grimoire_reminder_attachments *map[string]string
+	state                         *game.State
+	clearedFields                 map[string]struct{}
+	owner                         *int
+	clearedowner                  bool
+	script                        *int
+	clearedscript                 bool
+	phases                        map[int]struct{}
+	removedphases                 map[int]struct{}
+	clearedphases                 bool
+	done                          bool
+	oldValue                      func(context.Context) (*Game, error)
+	predicates                    []predicate.Game
 }
 
 var _ ent.Mutation = (*GameMutation)(nil)
@@ -1609,6 +1610,55 @@ func (m *GameMutation) ResetBagSubstitutions() {
 	delete(m.clearedFields, game.FieldBagSubstitutions)
 }
 
+// SetGrimoireReminderAttachments sets the "grimoire_reminder_attachments" field.
+func (m *GameMutation) SetGrimoireReminderAttachments(value map[string]string) {
+	m.grimoire_reminder_attachments = &value
+}
+
+// GrimoireReminderAttachments returns the value of the "grimoire_reminder_attachments" field in the mutation.
+func (m *GameMutation) GrimoireReminderAttachments() (r map[string]string, exists bool) {
+	v := m.grimoire_reminder_attachments
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGrimoireReminderAttachments returns the old "grimoire_reminder_attachments" field's value of the Game entity.
+// If the Game object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GameMutation) OldGrimoireReminderAttachments(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGrimoireReminderAttachments is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGrimoireReminderAttachments requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGrimoireReminderAttachments: %w", err)
+	}
+	return oldValue.GrimoireReminderAttachments, nil
+}
+
+// ClearGrimoireReminderAttachments clears the value of the "grimoire_reminder_attachments" field.
+func (m *GameMutation) ClearGrimoireReminderAttachments() {
+	m.grimoire_reminder_attachments = nil
+	m.clearedFields[game.FieldGrimoireReminderAttachments] = struct{}{}
+}
+
+// GrimoireReminderAttachmentsCleared returns if the "grimoire_reminder_attachments" field was cleared in this mutation.
+func (m *GameMutation) GrimoireReminderAttachmentsCleared() bool {
+	_, ok := m.clearedFields[game.FieldGrimoireReminderAttachments]
+	return ok
+}
+
+// ResetGrimoireReminderAttachments resets all changes to the "grimoire_reminder_attachments" field.
+func (m *GameMutation) ResetGrimoireReminderAttachments() {
+	m.grimoire_reminder_attachments = nil
+	delete(m.clearedFields, game.FieldGrimoireReminderAttachments)
+}
+
 // SetState sets the "state" field.
 func (m *GameMutation) SetState(ga game.State) {
 	m.state = &ga
@@ -1800,7 +1850,7 @@ func (m *GameMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GameMutation) Fields() []string {
-	fields := make([]string, 0, 18)
+	fields := make([]string, 0, 19)
 	if m.created_at != nil {
 		fields = append(fields, game.FieldCreatedAt)
 	}
@@ -1852,6 +1902,9 @@ func (m *GameMutation) Fields() []string {
 	if m.bag_substitutions != nil {
 		fields = append(fields, game.FieldBagSubstitutions)
 	}
+	if m.grimoire_reminder_attachments != nil {
+		fields = append(fields, game.FieldGrimoireReminderAttachments)
+	}
 	if m.state != nil {
 		fields = append(fields, game.FieldState)
 	}
@@ -1897,6 +1950,8 @@ func (m *GameMutation) Field(name string) (ent.Value, bool) {
 		return m.GrimoireRoundNotes()
 	case game.FieldBagSubstitutions:
 		return m.BagSubstitutions()
+	case game.FieldGrimoireReminderAttachments:
+		return m.GrimoireReminderAttachments()
 	case game.FieldState:
 		return m.State()
 	}
@@ -1942,6 +1997,8 @@ func (m *GameMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldGrimoireRoundNotes(ctx)
 	case game.FieldBagSubstitutions:
 		return m.OldBagSubstitutions(ctx)
+	case game.FieldGrimoireReminderAttachments:
+		return m.OldGrimoireReminderAttachments(ctx)
 	case game.FieldState:
 		return m.OldState(ctx)
 	}
@@ -2072,6 +2129,13 @@ func (m *GameMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetBagSubstitutions(v)
 		return nil
+	case game.FieldGrimoireReminderAttachments:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGrimoireReminderAttachments(v)
+		return nil
 	case game.FieldState:
 		v, ok := value.(game.State)
 		if !ok {
@@ -2160,6 +2224,9 @@ func (m *GameMutation) ClearedFields() []string {
 	if m.FieldCleared(game.FieldBagSubstitutions) {
 		fields = append(fields, game.FieldBagSubstitutions)
 	}
+	if m.FieldCleared(game.FieldGrimoireReminderAttachments) {
+		fields = append(fields, game.FieldGrimoireReminderAttachments)
+	}
 	return fields
 }
 
@@ -2197,6 +2264,9 @@ func (m *GameMutation) ClearField(name string) error {
 		return nil
 	case game.FieldBagSubstitutions:
 		m.ClearBagSubstitutions()
+		return nil
+	case game.FieldGrimoireReminderAttachments:
+		m.ClearGrimoireReminderAttachments()
 		return nil
 	}
 	return fmt.Errorf("unknown Game nullable field %s", name)
@@ -2256,6 +2326,9 @@ func (m *GameMutation) ResetField(name string) error {
 		return nil
 	case game.FieldBagSubstitutions:
 		m.ResetBagSubstitutions()
+		return nil
+	case game.FieldGrimoireReminderAttachments:
+		m.ResetGrimoireReminderAttachments()
 		return nil
 	case game.FieldState:
 		m.ResetState()

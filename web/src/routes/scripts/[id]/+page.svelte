@@ -11,6 +11,9 @@
   import { Team } from "~/lib/gen/clockkeeper/v1/clockkeeper_pb";
   import TeamSection from "~/lib/components/TeamSection.svelte";
   import CharacterPickerModal from "~/lib/components/CharacterPickerModal.svelte";
+  import CharacterPreviewPopup from "~/lib/components/CharacterPreviewPopup.svelte";
+
+  let previewCharacter = $state<Character | null>(null);
 
   let script = $state<Script | undefined>();
   let name = $state("");
@@ -251,7 +254,7 @@
       </div>
       <div class="flex items-center gap-2">
         <a
-          href="/games/new?script={script.id}"
+          href="/games?script={script.id}"
           class="btn-secondary rounded-lg border border-border px-3 py-2 text-sm text-medium transition-colors hover:bg-hover"
         >
           Start Game
@@ -304,6 +307,7 @@
             removable={!script.isSystem}
             onremove={removeCharacter}
             onadd={script.isSystem ? undefined : () => openAddCharacter(team)}
+            onpreview={(c) => (previewCharacter = c)}
           />
         {/if}
       {/each}
@@ -319,6 +323,7 @@
           removable={!script.isSystem}
           onremove={removeCharacter}
           onadd={script.isSystem ? undefined : () => openAddCharacter(team)}
+          onpreview={(c) => (previewCharacter = c)}
         />
       {/if}
     {/each}
@@ -361,6 +366,14 @@
       onselect={addCharacter}
       ondeselect={removeCharacter}
       onclose={() => (showAddCharacter = false)}
+    />
+  {/if}
+
+  {#if previewCharacter}
+    <CharacterPreviewPopup
+      character={previewCharacter}
+      onclose={() => (previewCharacter = null)}
+      scriptId={script?.id}
     />
   {/if}
 {/if}

@@ -26,4 +26,6 @@ export interface GrimoireReminder {
   x: number;
   y: number;
   alignment?: "good" | "evil";
+  attachedTo?: string;
+  orbitAngle?: number;
 }

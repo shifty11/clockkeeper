@@ -24,7 +24,7 @@
   import DeathTracker from "~/lib/components/DeathTracker.svelte";
   import DistributionBar from "~/lib/components/DistributionBar.svelte";
   import GrimoireCanvas from "~/lib/components/grimoire/GrimoireCanvas.svelte";
-  import { circleLayout } from "~/lib/components/grimoire/layout";
+  import { circleLayout, orbitPosition } from "~/lib/components/grimoire/layout";
   import type {
     GrimoirePlayer,
     GrimoireReminder,
@@ -34,6 +34,7 @@
   import ReminderToken from "~/lib/components/ReminderToken.svelte";
   import SetupSidebar from "~/lib/components/SetupSidebar.svelte";
   import TeamSection from "~/lib/components/TeamSection.svelte";
+  import CharacterPreviewPopup from "~/lib/components/CharacterPreviewPopup.svelte";
 
   // --- Tab definitions (setup only) ---
   type GameTab = "setup" | "nightorder" | "grimoire";
@@ -852,6 +853,7 @@
   // --- Editable game name ---
   let editingName = $state(false);
   let nameInput = $state("");
+  let previewCharacter = $state<import("~/lib/gen/clockkeeper/v1/clockkeeper_pb").Character | null>(null);
 
   async function updateGameName() {
     if (!game || !nameInput.trim() || nameInput === game.name) {
@@ -897,6 +899,7 @@
   let grimoirePositions = $state(new Map<string, { x: number; y: number }>());
   let grimoireNames = $state(new Map<string, string>());
   let reminderPositions = $state(new Map<string, { x: number; y: number }>());
+  let reminderAttachments = $state(new Map<string, { playerId: string; angle: number }>());
   let grimoireGameNotes = $state(new Map<string, string>());
   let grimoireRoundNotes = $state(new Map<string, string>());
   let grimoireInitialized = $state(false);
@@ -961,7 +964,7 @@
     // Fill gaps for reminders without persisted positions (horizontal line at bottom)
     const tokens = game?.reminderTokens ?? [];
     if (tokens.length > 0) {
-      const reminderY = 380;
+      const reminderY = 400;
       const totalWidth = tokens.length * 80;
       const startX = -totalWidth / 2 + 40;
       for (let i = 0; i < tokens.length; i++) {
@@ -976,8 +979,23 @@
     const serverGameNotes = game?.grimoireGameNotes ?? {};
     const serverRoundNotes = game?.grimoireRoundNotes ?? {};
 
+    // Load persisted reminder attachments (encoded as "playerId:angle")
+    const serverAttachments = game?.grimoireReminderAttachments ?? {};
+    const newAttachments = new Map<string, { playerId: string; angle: number }>();
+    for (const [rid, encoded] of Object.entries(serverAttachments)) {
+      const colonIdx = encoded.lastIndexOf(":");
+      if (colonIdx > 0) {
+        const playerId = encoded.slice(0, colonIdx);
+        const angle = parseFloat(encoded.slice(colonIdx + 1));
+        if (!isNaN(angle)) {
+          newAttachments.set(rid, { playerId, angle });
+        }
+      }
+    }
+
     grimoirePositions = newPositions;
     reminderPositions = newReminderPositions;
+    reminderAttachments = newAttachments;
     grimoireNames = newNames;
     grimoireGameNotes = new Map(Object.entries(serverGameNotes));
     grimoireRoundNotes = new Map(Object.entries(serverRoundNotes));
@@ -1011,12 +1029,12 @@
         d,
       ]),
     );
-    return chars.map((c) => {
+    return chars.map((c, i) => {
       const pos = grimoirePositions.get(c.id) ?? { x: 0, y: 0 };
       const death = deathByRole.get(c.id);
       return {
         id: c.id,
-        name: grimoireNames.get(c.id) ?? c.name,
+        name: grimoireNames.get(c.id) ?? `Player ${i + 1}`,
         characterId: c.id,
         characterName: c.name,
         team: c.team,
@@ -1024,7 +1042,7 @@
         x: pos.x,
         y: pos.y,
         isDead: dayDeadRoleIds.has(c.id),
-        ghostVoteUsed: death?.ghostVote ?? false,
+        ghostVoteUsed: death ? !death.ghostVote : false,
         gameNote: grimoireGameNotes.get(c.id) ?? "",
         roundNote: currentRoundNotes.get(c.id) ?? "",
         alignment: dayAlignments.get(c.id) as "good" | "evil" | undefined,
@@ -1038,7 +1056,18 @@
     return (game.reminderTokens ?? []).map((token, i) => {
       const rid = `reminder-${i}`;
       const char = characterById.get(token.characterId);
-      const pos = reminderPositions.get(rid) ?? { x: 0, y: 0 };
+      const attachment = reminderAttachments.get(rid);
+      let pos: { x: number; y: number };
+      if (attachment) {
+        const playerPos = grimoirePositions.get(attachment.playerId);
+        if (playerPos) {
+          pos = orbitPosition(playerPos.x, playerPos.y, attachment.angle);
+        } else {
+          pos = reminderPositions.get(rid) ?? { x: 0, y: 0 };
+        }
+      } else {
+        pos = reminderPositions.get(rid) ?? { x: 0, y: 0 };
+      }
       return {
         id: rid,
         characterId: token.characterId,
@@ -1052,6 +1081,8 @@
           | "good"
           | "evil"
           | undefined,
+        attachedTo: attachment?.playerId,
+        orbitAngle: attachment?.angle,
       };
     });
   });
@@ -1066,12 +1097,17 @@
       for (const [id, pos] of grimoirePositions) allPositions[id] = pos;
       for (const [id, pos] of reminderPositions) allPositions[id] = pos;
       try {
+        const encodedAttachments: Record<string, string> = {};
+        for (const [rid, att] of reminderAttachments) {
+          encodedAttachments[rid] = `${att.playerId}:${att.angle}`;
+        }
         await client.updateGrimoireState({
           gameId: game.id,
           positions: allPositions,
           playerNames: Object.fromEntries(grimoireNames),
           gameNotes: Object.fromEntries(grimoireGameNotes),
           roundNotes: Object.fromEntries(grimoireRoundNotes),
+          reminderAttachments: encodedAttachments,
         });
       } catch (err) {
         console.error("Failed to save grimoire state", err);
@@ -1082,10 +1118,33 @@
   // Grimoire event handlers
   function handleGrimoirePlayerMove(id: string, x: number, y: number) {
     grimoirePositions = new Map(grimoirePositions.set(id, { x, y }));
+    // Attached reminders follow — their positions are derived, so just trigger reactivity
     saveGrimoireState();
   }
   function handleGrimoireReminderMove(id: string, x: number, y: number) {
     reminderPositions = new Map(reminderPositions.set(id, { x, y }));
+    saveGrimoireState();
+  }
+  function handleReminderAttach(reminderId: string, playerId: string, angle: number) {
+    reminderAttachments = new Map(reminderAttachments.set(reminderId, { playerId, angle }));
+    // Clear the free-floating position since it's now orbit-derived
+    reminderPositions.delete(reminderId);
+    reminderPositions = new Map(reminderPositions);
+    saveGrimoireState();
+  }
+  function handleReminderDetach(reminderId: string) {
+    // Compute current position from orbit before detaching
+    const attachment = reminderAttachments.get(reminderId);
+    if (attachment) {
+      const playerPos = grimoirePositions.get(attachment.playerId);
+      if (playerPos) {
+        const pos = orbitPosition(playerPos.x, playerPos.y, attachment.angle);
+        reminderPositions.set(reminderId, pos);
+      }
+    }
+    reminderAttachments.delete(reminderId);
+    reminderAttachments = new Map(reminderAttachments);
+    reminderPositions = new Map(reminderPositions);
     saveGrimoireState();
   }
   function handleGrimoirePlayerRename(id: string, name: string) {
@@ -1161,7 +1220,12 @@
   <div class="space-y-6 {isFullscreen ? 'pb-0' : 'pb-16 2xl:pb-0'}">
     <!-- Header -->
     {#if !isFullscreen}
-      <div class="no-print flex items-center justify-between">
+      <div
+        class="no-print {isSetup
+          ? 'sticky top-[57px] z-10 bg-surface border border-border rounded-lg px-4 pt-2 pb-2 shadow-sm'
+          : ''}"
+      >
+      <div class="flex items-center justify-between">
         <div>
           <div class="flex items-center gap-3">
             {#if editingName}
@@ -1173,7 +1237,7 @@
                   if (e.key === "Enter") updateGameName();
                   if (e.key === "Escape") editingName = false;
                 }}
-                class="text-2xl font-bold text-primary bg-transparent border-b-2 border-indigo-500 outline-none w-full max-w-md"
+                class="text-2xl font-bold text-primary bg-transparent border-b-2 border-indigo-500 outline-none min-w-0 max-w-md"
                 autofocus
               />
             {:else}
@@ -1203,7 +1267,7 @@
             {/if}
             {#if stateBadge.label}
               <span
-                class="rounded-full px-2.5 py-0.5 text-xs font-medium {stateBadge.class}"
+                class="shrink-0 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium {stateBadge.class}"
                 >{stateBadge.label}</span
               >
             {/if}
@@ -1256,6 +1320,15 @@
               />
             </svg>
           </button>
+          {#if isSetup && activeTab === "setup"}
+            <button
+              onclick={randomize}
+              disabled={randomizing}
+              class="rounded-lg border border-indigo-500 px-4 py-2.5 text-sm font-medium text-indigo-500 transition-colors hover:bg-indigo-500 hover:text-white disabled:opacity-50"
+            >
+              {randomizing ? "Randomizing..." : "Randomize Roles"}
+            </button>
+          {/if}
           {#if canStartGame}
             <button
               onclick={startGame}
@@ -1265,6 +1338,23 @@
             </button>
           {/if}
         </div>
+      </div>
+      <!-- Tab bar (setup only, inside sticky wrapper) -->
+      {#if isSetup}
+        <div class="mt-4 flex gap-1 rounded-lg bg-element p-1">
+          {#each setupTabs as t}
+            <button
+              onclick={() => setTab(t.id)}
+              class="rounded-md px-4 py-2 text-sm font-medium transition-colors {activeTab ===
+              t.id
+                ? 'bg-surface text-primary shadow-sm'
+                : 'text-secondary hover:text-medium'}"
+            >
+              {t.label}
+            </button>
+          {/each}
+        </div>
+      {/if}
       </div>
     {/if}
 
@@ -1343,23 +1433,6 @@
       </div>
     {/if}
 
-    <!-- Tab bar (setup only) -->
-    {#if isSetup}
-      <div class="no-print flex gap-1 rounded-lg bg-element p-1">
-        {#each setupTabs as t}
-          <button
-            onclick={() => setTab(t.id)}
-            class="rounded-md px-4 py-2 text-sm font-medium transition-colors {activeTab ===
-            t.id
-              ? 'bg-surface text-primary shadow-sm'
-              : 'text-secondary hover:text-medium'}"
-          >
-            {t.label}
-          </button>
-        {/each}
-      </div>
-    {/if}
-
     {#if error}
       <div
         class="rounded-lg bg-error-bg border border-error-border px-4 py-2 text-sm text-error-text"
@@ -1378,66 +1451,11 @@
           onadvance={advancePhase}
           onend={endGame}
           onnavigate={(i) => (viewingRoundIndex = i)}
+          activeView={inProgressView}
+          onviewchange={(v) => (inProgressView = v)}
+          {isFullscreen}
+          ontogglefullscreen={toggleFullscreen}
         />
-
-        <!-- View toggle: Night Sheet / Grimoire + Fullscreen -->
-        <div class="no-print flex items-center gap-2">
-          <div class="flex gap-1 rounded-lg bg-element p-1">
-            <button
-              onclick={() => (inProgressView = "nightsheet")}
-              class="rounded-md px-4 py-2 text-sm font-medium transition-colors {inProgressView ===
-              'nightsheet'
-                ? 'bg-surface text-primary shadow-sm'
-                : 'text-secondary hover:text-medium'}"
-            >
-              Night Sheet
-            </button>
-            <button
-              onclick={() => (inProgressView = "grimoire")}
-              class="rounded-md px-4 py-2 text-sm font-medium transition-colors {inProgressView ===
-              'grimoire'
-                ? 'bg-surface text-primary shadow-sm'
-                : 'text-secondary hover:text-medium'}"
-            >
-              Grimoire
-            </button>
-          </div>
-          <button
-            onclick={toggleFullscreen}
-            class="rounded-lg border border-border p-2 text-secondary transition-colors hover:bg-hover hover:text-medium"
-            title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-          >
-            {#if isFullscreen}
-              <svg
-                class="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
-                />
-              </svg>
-            {:else}
-              <svg
-                class="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
-                />
-              </svg>
-            {/if}
-          </button>
-        </div>
 
         {#if inProgressView === "nightsheet"}
           <NightOrder
@@ -1480,6 +1498,8 @@
               roundLabel="Night {viewingRound?.roundNumber ?? 1}"
               onplayermove={handleGrimoirePlayerMove}
               onremindermove={handleGrimoireReminderMove}
+              onreminderattach={handleReminderAttach}
+              onreminderdetach={handleReminderDetach}
               onplayerrename={handleGrimoirePlayerRename}
               onplayertoggledeath={handleGrimoirePlayerToggleDeath}
               onplayergamenote={handleGrimoireGameNote}
@@ -1494,16 +1514,6 @@
     {:else if isSetup}
       {#if activeTab === "setup"}
         <div class="space-y-6">
-          <div class="flex items-center justify-end">
-            <button
-              onclick={randomize}
-              disabled={randomizing}
-              class="btn-primary rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-400 disabled:opacity-50"
-            >
-              {randomizing ? "Randomizing..." : "Randomize Roles"}
-            </button>
-          </div>
-
           <!-- Distribution -->
           <div class="rounded-lg border border-border bg-surface p-4">
             <DistributionBar
@@ -1532,6 +1542,7 @@
                     onadd={() => openCharacterPicker(team)}
                     bagSubstitutions={bagSubByRole}
                     onbagsubchange={openBagSubPicker}
+                    onpreview={(c) => (previewCharacter = c)}
                   />
                 {/if}
                 {#if team === Team.DEMON && game.playerCount >= 7}
@@ -1631,6 +1642,7 @@
                 onalignmentchange={opt.team === Team.TRAVELLER
                   ? updateTravellerAlignment
                   : undefined}
+                onpreview={(c) => (previewCharacter = c)}
               />
             {/if}
           {/each}
@@ -1689,6 +1701,8 @@
             reminders={grimoireReminders}
             onplayermove={handleGrimoirePlayerMove}
             onremindermove={handleGrimoireReminderMove}
+            onreminderattach={handleReminderAttach}
+            onreminderdetach={handleReminderDetach}
             onplayerrename={handleGrimoirePlayerRename}
             onplayertoggledeath={handleGrimoirePlayerToggleDeath}
             onplayergamenote={handleGrimoireGameNote}
@@ -1770,6 +1784,9 @@
         ...(game.selectedRoleIds ?? []),
         ...(game.extraCharacterIds ?? []),
       ]}
+      {characterById}
+      onstartgame={startGame}
+      {canStartGame}
     />
   {/if}
 
@@ -1782,6 +1799,16 @@
       cancelLabel={confirmDialog.cancelLabel}
       onconfirm={confirmDialog.onconfirm}
       oncancel={confirmDialog.oncancel}
+    />
+  {/if}
+
+  <!-- Character preview popup -->
+  {#if isSetup && previewCharacter}
+    <CharacterPreviewPopup
+      character={previewCharacter}
+      onclose={() => (previewCharacter = null)}
+      onstartgame={startGame}
+      {canStartGame}
     />
   {/if}
 {/if}

@@ -22,6 +22,7 @@ type GameBagSubstitution struct {
 	CausedByName  string `json:"caused_by_name"`
 	CharacterID   string `json:"character_id"`
 	CharacterName string `json:"character_name"`
+	Team          string `json:"team"`
 }
 
 const (
@@ -58,6 +59,7 @@ func (Game) Fields() []ent.Field {
 		field.JSON("grimoire_game_notes", map[string]string{}).Optional().Default(map[string]string{}),
 		field.JSON("grimoire_round_notes", map[string]string{}).Optional().Default(map[string]string{}),
 		field.JSON("bag_substitutions", []GameBagSubstitution{}).Optional().Default([]GameBagSubstitution{}),
+		field.JSON("grimoire_reminder_attachments", map[string]string{}).Optional().Default(map[string]string{}),
 		field.Enum("state").
 			Values("setup", "in_progress", "completed").
 			Default("setup"),

@@ -232,24 +232,24 @@
           <!-- Ghost vote indicator -->
           <button
             onclick={() => onuseghostvote(death.id)}
-            disabled={readonly || death.ghostVote}
-            class="shrink-0 rounded p-1 transition-colors {death.ghostVote
+            disabled={readonly || !death.ghostVote}
+            class="shrink-0 rounded p-1 transition-colors {!death.ghostVote
               ? 'text-muted cursor-default'
               : readonly
                 ? 'text-secondary cursor-default'
                 : 'text-secondary hover:bg-hover hover:text-medium'}"
-            title={death.ghostVote ? "Ghost vote used" : "Use ghost vote"}
-            aria-label={death.ghostVote ? "Ghost vote used" : "Use ghost vote"}
+            title={!death.ghostVote ? "Ghost vote used" : "Use ghost vote"}
+            aria-label={!death.ghostVote ? "Ghost vote used" : "Use ghost vote"}
           >
             <!-- Skull icon -->
             <svg
               class="h-5 w-5"
               viewBox="0 0 24 24"
-              fill={death.ghostVote ? "none" : "currentColor"}
+              fill={!death.ghostVote ? "none" : "currentColor"}
               stroke="currentColor"
-              stroke-width={death.ghostVote ? "1.5" : "0"}
+              stroke-width={!death.ghostVote ? "1.5" : "0"}
             >
-              {#if death.ghostVote}
+              {#if !death.ghostVote}
                 <!-- Empty skull (vote used) with strikethrough -->
                 <path
                   stroke-linecap="round"

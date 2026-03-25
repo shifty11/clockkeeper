@@ -43,6 +43,7 @@ var migrationValidators = map[string]func(t *testing.T, ctx context.Context, db 
 	"20260323131712_add_character_alignments":            validateCharacterAlignments,
 	"20260323135528_add_demon_bluffs":                   validateDemonBluffs,
 	"20260323161223_add_bag_substitutions":               validateBagSubstitutions,
+	"20260324183937_add_grimoire_reminder_attachments":   validateGrimoireReminderAttachments,
 }
 
 // TestMigrationCoverage ensures every migration file has a registered validator.
@@ -529,6 +530,18 @@ func validateBagSubstitutions(t *testing.T, ctx context.Context, _ *sql.DB, clie
 	}
 	if g.BagSubstitutions != nil && len(g.BagSubstitutions) != 0 {
 		t.Errorf("expected nil or empty bag_substitutions, got %v", g.BagSubstitutions)
+	}
+}
+
+// validateGrimoireReminderAttachments checks that the grimoire_reminder_attachments column exists on games.
+func validateGrimoireReminderAttachments(t *testing.T, ctx context.Context, _ *sql.DB, client *ent.Client) {
+	t.Helper()
+	g, err := client.Game.Query().Only(ctx)
+	if err != nil {
+		t.Fatalf("failed to query game: %v", err)
+	}
+	if g.GrimoireReminderAttachments != nil && len(g.GrimoireReminderAttachments) != 0 {
+		t.Errorf("expected nil or empty grimoire_reminder_attachments, got %v", g.GrimoireReminderAttachments)
 	}
 }
 

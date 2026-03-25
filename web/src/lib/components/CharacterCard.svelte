@@ -19,6 +19,7 @@
     onalignmentchange,
     bagSubstitution,
     onbagsubchange,
+    onpreview,
   }: {
     character: Character;
     selected?: boolean;
@@ -30,6 +31,7 @@
       | { characterId: string; characterName: string }
       | undefined;
     onbagsubchange?: () => void;
+    onpreview?: () => void;
   } = $props();
 
   const iconSuffix = $derived.by(() => {
@@ -169,6 +171,31 @@
         </button>
       {/if}
     </div>
+    {#if onpreview}
+      <button
+        onclick={(e: MouseEvent) => {
+          e.stopPropagation();
+          onpreview?.();
+        }}
+        aria-label="Preview {character.name}"
+        class="shrink-0 rounded p-1 text-muted transition-colors hover:bg-hover hover:text-indigo-500"
+        title="Quick preview"
+      >
+        <svg
+          class="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      </button>
+    {/if}
     {#if removable && onremove}
       <button
         onclick={onremove}

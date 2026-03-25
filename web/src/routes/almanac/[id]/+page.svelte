@@ -6,6 +6,7 @@
   import type { Character } from "~/lib/gen/clockkeeper/v1/clockkeeper_pb";
   import ReminderToken from "~/lib/components/ReminderToken.svelte";
   import { formatReminder } from "~/lib/format";
+  import { teamLabels, teamBadgeColors } from "~/lib/team-styles";
 
   let character = $state<Character | null>(null);
   let loading = $state(true);
@@ -19,33 +20,6 @@
   const backLabel = $derived(
     backUrl.startsWith("/games/") ? "Back to Game" : "Back to Almanac",
   );
-
-  const teamLabels: Record<number, string> = {
-    [Team.TOWNSFOLK]: "Townsfolk",
-    [Team.OUTSIDER]: "Outsider",
-    [Team.MINION]: "Minion",
-    [Team.DEMON]: "Demon",
-    [Team.TRAVELLER]: "Traveller",
-    [Team.FABLED]: "Fabled",
-    [Team.LORIC]: "Loric",
-  };
-
-  const teamBadgeColors: Record<number, string> = {
-    [Team.TOWNSFOLK]:
-      "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300",
-    [Team.OUTSIDER]:
-      "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300",
-    [Team.MINION]:
-      "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300",
-    [Team.DEMON]:
-      "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
-    [Team.TRAVELLER]:
-      "bg-gradient-to-r from-blue-100 to-red-100 text-blue-700 dark:from-blue-500/20 dark:to-red-500/20 dark:text-blue-300",
-    [Team.FABLED]:
-      "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300",
-    [Team.LORIC]:
-      "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300",
-  };
 
   const teamHeaderColors: Record<number, string> = {
     [Team.TOWNSFOLK]: "text-blue-600 dark:text-blue-400",

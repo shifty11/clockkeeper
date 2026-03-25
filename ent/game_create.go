@@ -158,6 +158,12 @@ func (_c *GameCreate) SetBagSubstitutions(v []schema.GameBagSubstitution) *GameC
 	return _c
 }
 
+// SetGrimoireReminderAttachments sets the "grimoire_reminder_attachments" field.
+func (_c *GameCreate) SetGrimoireReminderAttachments(v map[string]string) *GameCreate {
+	_c.mutation.SetGrimoireReminderAttachments(v)
+	return _c
+}
+
 // SetState sets the "state" field.
 func (_c *GameCreate) SetState(v game.State) *GameCreate {
 	_c.mutation.SetState(v)
@@ -285,6 +291,10 @@ func (_c *GameCreate) defaults() {
 	if _, ok := _c.mutation.BagSubstitutions(); !ok {
 		v := game.DefaultBagSubstitutions
 		_c.mutation.SetBagSubstitutions(v)
+	}
+	if _, ok := _c.mutation.GrimoireReminderAttachments(); !ok {
+		v := game.DefaultGrimoireReminderAttachments
+		_c.mutation.SetGrimoireReminderAttachments(v)
 	}
 	if _, ok := _c.mutation.State(); !ok {
 		v := game.DefaultState
@@ -430,6 +440,10 @@ func (_c *GameCreate) createSpec() (*Game, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.BagSubstitutions(); ok {
 		_spec.SetField(game.FieldBagSubstitutions, field.TypeJSON, value)
 		_node.BagSubstitutions = value
+	}
+	if value, ok := _c.mutation.GrimoireReminderAttachments(); ok {
+		_spec.SetField(game.FieldGrimoireReminderAttachments, field.TypeJSON, value)
+		_node.GrimoireReminderAttachments = value
 	}
 	if value, ok := _c.mutation.State(); ok {
 		_spec.SetField(game.FieldState, field.TypeEnum, value)

@@ -570,6 +570,242 @@ handler := testHandler(t)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
+func TestCreateGame_AutoSelectsTravellersFromScript(t *testing.T) {
+	handler := testHandler(t)
+	ctx := context.Background()
+
+	hash, err := HashPassword("pass")
+	require.NoError(t, err)
+	_, err = handler.db.User.Create().SetUsername("owner2").SetPasswordHash(hash).Save(ctx)
+	require.NoError(t, err)
+
+	// Create a custom script with TB roles + 2 travellers.
+	scriptResp, err := handler.CreateScript(authedCtx("owner2"), connect.NewRequest(&clockkeeperv1.CreateScriptRequest{
+		Name: "TB with Travellers",
+		CharacterIds: []string{
+			"washerwoman", "librarian", "investigator", "chef", "empath",
+			"fortuneteller", "undertaker", "monk", "ravenkeeper", "virgin",
+			"slayer", "soldier", "mayor", "butler", "saint", "recluse",
+			"drunk", "poisoner", "spy", "scarletwoman", "baron", "imp",
+			"thief", "bureaucrat", // travellers
+		},
+	}))
+	require.NoError(t, err)
+	scriptID := scriptResp.Msg.Script.Id
+
+	// Create a game with 2 travellers — should select 2 from the script's 2 travellers.
+	gameResp, err := handler.CreateGame(authedCtx("owner2"), connect.NewRequest(&clockkeeperv1.CreateGameRequest{
+		ScriptId:       scriptID,
+		PlayerCount:    7,
+		TravellerCount: 2,
+	}))
+	require.NoError(t, err)
+	g := gameResp.Msg.Game
+
+	assert.Len(t, g.SelectedTravellerIds, 2, "expected 2 travellers auto-selected from script")
+	assert.ElementsMatch(t, []string{"thief", "bureaucrat"}, g.SelectedTravellerIds)
+	assert.Equal(t, int32(2), g.TravellerCount)
+
+	// Verify all selected IDs have traveller team in character details.
+	for _, ch := range g.SelectedTravellerCharacters {
+		assert.Equal(t, clockkeeperv1.Team_TEAM_TRAVELLER, ch.Team, "expected traveller team for %s", ch.Id)
+	}
+}
+
+func TestCreateGame_ZeroTravellersIgnoresScriptTravellers(t *testing.T) {
+	handler := testHandler(t)
+	ctx := context.Background()
+
+	hash, err := HashPassword("pass")
+	require.NoError(t, err)
+	_, err = handler.db.User.Create().SetUsername("owner2b").SetPasswordHash(hash).Save(ctx)
+	require.NoError(t, err)
+
+	// Create a script with travellers.
+	scriptResp, err := handler.CreateScript(authedCtx("owner2b"), connect.NewRequest(&clockkeeperv1.CreateScriptRequest{
+		Name: "TB with Travellers (zero test)",
+		CharacterIds: []string{
+			"washerwoman", "librarian", "investigator", "chef", "empath",
+			"fortuneteller", "undertaker", "monk", "ravenkeeper", "virgin",
+			"slayer", "soldier", "mayor", "butler", "saint", "recluse",
+			"drunk", "poisoner", "spy", "scarletwoman", "baron", "imp",
+			"thief", "bureaucrat",
+		},
+	}))
+	require.NoError(t, err)
+
+	// Create game with 0 travellers — none should be selected despite script having them.
+	gameResp, err := handler.CreateGame(authedCtx("owner2b"), connect.NewRequest(&clockkeeperv1.CreateGameRequest{
+		ScriptId:       scriptResp.Msg.Script.Id,
+		PlayerCount:    7,
+		TravellerCount: 0,
+	}))
+	require.NoError(t, err)
+	assert.Empty(t, gameResp.Msg.Game.SelectedTravellerIds, "expected 0 travellers when travellerCount is 0")
+}
+
+func TestCreateGame_AutoPopulatesFabledFromScript(t *testing.T) {
+	handler := testHandler(t)
+	ctx := context.Background()
+
+	hash, err := HashPassword("pass")
+	require.NoError(t, err)
+	_, err = handler.db.User.Create().SetUsername("owner3").SetPasswordHash(hash).Save(ctx)
+	require.NoError(t, err)
+
+	// Create a custom script with TB roles + a fabled character.
+	scriptResp, err := handler.CreateScript(authedCtx("owner3"), connect.NewRequest(&clockkeeperv1.CreateScriptRequest{
+		Name: "TB with Fabled",
+		CharacterIds: []string{
+			"washerwoman", "librarian", "investigator", "chef", "empath",
+			"fortuneteller", "undertaker", "monk", "ravenkeeper", "virgin",
+			"slayer", "soldier", "mayor", "butler", "saint", "recluse",
+			"drunk", "poisoner", "spy", "scarletwoman", "baron", "imp",
+			"angel", // fabled
+		},
+	}))
+	require.NoError(t, err)
+	scriptID := scriptResp.Msg.Script.Id
+
+	// Create a game — fabled should appear in extra characters.
+	gameResp, err := handler.CreateGame(authedCtx("owner3"), connect.NewRequest(&clockkeeperv1.CreateGameRequest{
+		ScriptId:    scriptID,
+		PlayerCount: 7,
+	}))
+	require.NoError(t, err)
+	g := gameResp.Msg.Game
+
+	assert.Contains(t, g.ExtraCharacterIds, "angel", "expected fabled character in extra characters")
+}
+
+func TestRandomizeRoles_IncludesTravellersFromScript(t *testing.T) {
+	handler := testHandler(t)
+	ctx := context.Background()
+
+	hash, err := HashPassword("pass")
+	require.NoError(t, err)
+	_, err = handler.db.User.Create().SetUsername("owner4").SetPasswordHash(hash).Save(ctx)
+	require.NoError(t, err)
+
+	// Create a custom script with TB roles + travellers.
+	scriptResp, err := handler.CreateScript(authedCtx("owner4"), connect.NewRequest(&clockkeeperv1.CreateScriptRequest{
+		Name: "TB with Travellers for Randomize",
+		CharacterIds: []string{
+			"washerwoman", "librarian", "investigator", "chef", "empath",
+			"fortuneteller", "undertaker", "monk", "ravenkeeper", "virgin",
+			"slayer", "soldier", "mayor", "butler", "saint", "recluse",
+			"drunk", "poisoner", "spy", "scarletwoman", "baron", "imp",
+			"thief", "bureaucrat",
+		},
+	}))
+	require.NoError(t, err)
+	scriptID := scriptResp.Msg.Script.Id
+
+	// Create game with 2 travellers and randomize roles.
+	gameResp, err := handler.CreateGame(authedCtx("owner4"), connect.NewRequest(&clockkeeperv1.CreateGameRequest{
+		ScriptId:       scriptID,
+		PlayerCount:    7,
+		TravellerCount: 2,
+	}))
+	require.NoError(t, err)
+
+	resp, err := handler.RandomizeRoles(authedCtx("owner4"), connect.NewRequest(&clockkeeperv1.RandomizeRolesRequest{
+		GameId: gameResp.Msg.Game.Id,
+	}))
+	require.NoError(t, err)
+	g := resp.Msg.Game
+
+	assert.Len(t, g.SelectedTravellerIds, 2, "expected 2 travellers after randomize")
+	assert.ElementsMatch(t, []string{"thief", "bureaucrat"}, g.SelectedTravellerIds)
+	assert.Len(t, g.SelectedRoleIds, 7, "expected 7 roles for 7 players")
+}
+
+func TestRandomizeRoles_RespectsExistingTravellerCount(t *testing.T) {
+	handler := testHandler(t)
+	ctx := context.Background()
+
+	hash, err := HashPassword("pass")
+	require.NoError(t, err)
+	_, err = handler.db.User.Create().SetUsername("owner5").SetPasswordHash(hash).Save(ctx)
+	require.NoError(t, err)
+
+	// Create a script with 3 travellers (thief, bureaucrat, gunslinger are all TB travellers).
+	scriptResp, err := handler.CreateScript(authedCtx("owner5"), connect.NewRequest(&clockkeeperv1.CreateScriptRequest{
+		Name: "TB 3 Travellers",
+		CharacterIds: []string{
+			"washerwoman", "librarian", "investigator", "chef", "empath",
+			"fortuneteller", "undertaker", "monk", "ravenkeeper", "virgin",
+			"slayer", "soldier", "mayor", "butler", "saint", "recluse",
+			"drunk", "poisoner", "spy", "scarletwoman", "baron", "imp",
+			"thief", "bureaucrat", "gunslinger",
+		},
+	}))
+	require.NoError(t, err)
+
+	// Create game with only 1 traveller.
+	gameResp, err := handler.CreateGame(authedCtx("owner5"), connect.NewRequest(&clockkeeperv1.CreateGameRequest{
+		ScriptId:       scriptResp.Msg.Script.Id,
+		PlayerCount:    8,
+		TravellerCount: 1,
+	}))
+	require.NoError(t, err)
+	assert.Len(t, gameResp.Msg.Game.SelectedTravellerIds, 1, "expected 1 traveller at creation")
+
+	// Randomize — should still have only 1 traveller, not 3.
+	resp, err := handler.RandomizeRoles(authedCtx("owner5"), connect.NewRequest(&clockkeeperv1.RandomizeRolesRequest{
+		GameId: gameResp.Msg.Game.Id,
+	}))
+	require.NoError(t, err)
+	g := resp.Msg.Game
+
+	assert.Len(t, g.SelectedTravellerIds, 1, "randomize should respect existing traveller count, not add all from script")
+	assert.Equal(t, int32(1), g.TravellerCount, "traveller count should not change after randomize")
+}
+
+func TestRandomizeRoles_ShufflesTravellers(t *testing.T) {
+	handler := testHandler(t)
+	ctx := context.Background()
+
+	hash, err := HashPassword("pass")
+	require.NoError(t, err)
+	_, err = handler.db.User.Create().SetUsername("owner6").SetPasswordHash(hash).Save(ctx)
+	require.NoError(t, err)
+
+	// Script with 5 TB travellers, picking 1 — should not always be the same.
+	scriptResp, err := handler.CreateScript(authedCtx("owner6"), connect.NewRequest(&clockkeeperv1.CreateScriptRequest{
+		Name: "TB 5 Travellers shuffle test",
+		CharacterIds: []string{
+			"washerwoman", "librarian", "investigator", "chef", "empath",
+			"fortuneteller", "undertaker", "monk", "ravenkeeper", "virgin",
+			"slayer", "soldier", "mayor", "butler", "saint", "recluse",
+			"drunk", "poisoner", "spy", "scarletwoman", "baron", "imp",
+			"thief", "bureaucrat", "gunslinger", "beggar", "scapegoat",
+		},
+	}))
+	require.NoError(t, err)
+
+	gameResp, err := handler.CreateGame(authedCtx("owner6"), connect.NewRequest(&clockkeeperv1.CreateGameRequest{
+		ScriptId:       scriptResp.Msg.Script.Id,
+		PlayerCount:    7,
+		TravellerCount: 1,
+	}))
+	require.NoError(t, err)
+	gameID := gameResp.Msg.Game.Id
+
+	// Randomize 20 times and collect the selected traveller each time.
+	seen := make(map[string]bool)
+	for range 20 {
+		resp, err := handler.RandomizeRoles(authedCtx("owner6"), connect.NewRequest(&clockkeeperv1.RandomizeRolesRequest{
+			GameId: gameID,
+		}))
+		require.NoError(t, err)
+		require.Len(t, resp.Msg.Game.SelectedTravellerIds, 1)
+		seen[resp.Msg.Game.SelectedTravellerIds[0]] = true
+	}
+
+	assert.Greater(t, len(seen), 1, "expected different travellers across 20 randomizations, but always got the same one")
+}
+
 func TestGetSetupChecklist_ReturnsSteps(t *testing.T) {
 handler := testHandler(t)
 	_, gameID := createTestGame(t, handler)
