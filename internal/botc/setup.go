@@ -87,6 +87,14 @@ var setupModifiers = map[string]SetupModifierDef{
 	"tor":          {Manual: true},
 }
 
+// BagTeamForCharacter returns the bag substitution team for a character, if any.
+func BagTeamForCharacter(characterID string) Team {
+	if def, ok := setupModifiers[characterID]; ok {
+		return def.BagTeam
+	}
+	return ""
+}
+
 // SetupModifier describes a character's effect on role distribution (returned to callers).
 type SetupModifier struct {
 	CharacterID   string
@@ -380,12 +388,30 @@ func RandomizeRoles(characters []*Character, playerCount int) (*RandomizeResult,
 			})
 			continue
 		}
-		// Replace a non-setup townsfolk with the companion.
+		// Determine which team slice to replace from based on companion's team.
+		var targetSlice *[]*Character
+		switch companion.Team {
+		case TeamTownsfolk:
+			targetSlice = &townsfolk
+		case TeamOutsider:
+			targetSlice = &outsiders
+		}
+		if targetSlice == nil {
+			// Companion is minion/demon — unlikely, fall through to manual.
+			setupResult.ManualModifiers = append(setupResult.ManualModifiers, SetupModifier{
+				CharacterID:   c.ID,
+				CharacterName: c.Name,
+				Manual:        true,
+				Description:   fmt.Sprintf("%s requires %s — add manually (no %s slot available to swap)", c.Name, def.Companion, companion.Team),
+			})
+			continue
+		}
+		// Replace a non-setup character from the matching team with the companion.
 		replaced := false
-		for i := len(townsfolk) - 1; i >= 0; i-- {
-			if automaticOutsiderDelta(townsfolk[i]) == 0 && !hasCompanion(townsfolk[i]) {
-				selectedSet[townsfolk[i].ID] = false
-				townsfolk[i] = companion
+		for i := len(*targetSlice) - 1; i >= 0; i-- {
+			if automaticOutsiderDelta((*targetSlice)[i]) == 0 && !hasCompanion((*targetSlice)[i]) {
+				selectedSet[(*targetSlice)[i].ID] = false
+				(*targetSlice)[i] = companion
 				selectedSet[companion.ID] = true
 				replaced = true
 				break
@@ -396,7 +422,7 @@ func RandomizeRoles(characters []*Character, playerCount int) (*RandomizeResult,
 				CharacterID:   c.ID,
 				CharacterName: c.Name,
 				Manual:        true,
-				Description:   fmt.Sprintf("%s requires %s — add manually (no townsfolk slot available to swap)", c.Name, def.Companion),
+				Description:   fmt.Sprintf("%s requires %s — add manually (no %s slot available to swap)", c.Name, def.Companion, companion.Team),
 			})
 		}
 	}

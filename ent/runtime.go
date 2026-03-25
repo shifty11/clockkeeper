@@ -129,6 +129,10 @@ func init() {
 	gameDescBagSubstitutions := gameFields[14].Descriptor()
 	// game.DefaultBagSubstitutions holds the default value on creation for the bag_substitutions field.
 	game.DefaultBagSubstitutions = gameDescBagSubstitutions.Default.([]schema.GameBagSubstitution)
+	// gameDescGrimoireReminderAttachments is the schema descriptor for grimoire_reminder_attachments field.
+	gameDescGrimoireReminderAttachments := gameFields[15].Descriptor()
+	// game.DefaultGrimoireReminderAttachments holds the default value on creation for the grimoire_reminder_attachments field.
+	game.DefaultGrimoireReminderAttachments = gameDescGrimoireReminderAttachments.Default.(map[string]string)
 	phaseMixin := schema.Phase{}.Mixin()
 	phaseMixinFields0 := phaseMixin[0].Fields()
 	_ = phaseMixinFields0

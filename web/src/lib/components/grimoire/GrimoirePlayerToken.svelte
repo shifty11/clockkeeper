@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Team } from "~/lib/gen/clockkeeper/v1/clockkeeper_pb";
-  import { teamCardColors, goodColors, evilColors } from "~/lib/team-styles";
+  import { teamCardColors, goodColors, evilColors, teamDataAttr } from "~/lib/team-styles";
   import type { GrimoirePlayer } from "./types";
 
   let {
@@ -8,6 +8,7 @@
     zoom,
     roundLabel = "Round",
     showNotes = false,
+    highlightAttach = false,
     onmove,
     onrename,
     ontoggledeath,
@@ -19,6 +20,7 @@
     zoom: number;
     roundLabel?: string;
     showNotes?: boolean;
+    highlightAttach?: boolean;
     onmove?: (x: number, y: number) => void;
     onrename?: (name: string) => void;
     ontoggledeath?: () => void;
@@ -156,29 +158,34 @@
   }}
 >
   <div
-    class="card-slate flex h-32 w-32 flex-col items-center justify-center rounded-full border-2 p-1 {colorClass}"
+    class="card-slate flex h-32 w-32 flex-col items-center justify-center rounded-full p-1 transition-shadow {colorClass} {highlightAttach ? 'ring-3 ring-primary/40' : ''}"
+    class:token-bezel={!player.isDead}
+    class:token-bezel-dead={player.isDead}
+    class:token-bezel-drag={dragging}
     class:grayscale={player.isDead}
+    class:opacity-75={player.isDead}
+    data-team={teamDataAttr[player.team] ?? ""}
   >
     {#if player.isDead}
-      <div class="absolute inset-0 rounded-full bg-red-900/30"></div>
+      <div class="absolute inset-0 rounded-full bg-black/20"></div>
     {/if}
     {#if !imgError && player.characterId}
       <img
         src={iconUrl}
         alt={player.characterName}
-        class="h-16 w-16 shrink-0 rounded-full"
+        class="h-20 w-20 shrink-0 drop-shadow-sm"
         onerror={() => (imgError = true)}
         draggable="false"
       />
     {:else}
       <div
-        class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-element text-lg text-secondary"
+        class="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-element text-xl text-secondary"
       >
         ?
       </div>
     {/if}
     <span
-      class="relative z-10 max-w-[100px] truncate text-center text-[10px] font-semibold leading-tight text-primary"
+      class="relative z-10 -mt-1 max-w-[100px] truncate text-center text-[10px] font-bold uppercase tracking-wide leading-tight text-primary drop-shadow-sm"
     >
       {player.characterName}
     </span>

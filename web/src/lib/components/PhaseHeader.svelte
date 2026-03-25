@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Game, Phase } from "~/lib/gen/clockkeeper/v1/clockkeeper_pb";
+  import type { Snippet } from "svelte";
 
   interface Round {
     night?: Phase;
@@ -14,6 +15,10 @@
     onadvance,
     onend,
     onnavigate,
+    activeView = "nightsheet",
+    onviewchange,
+    isFullscreen = false,
+    ontogglefullscreen,
   }: {
     game: Game;
     viewingRoundIndex: number;
@@ -21,6 +26,10 @@
     onadvance: () => void;
     onend: () => void;
     onnavigate: (index: number) => void;
+    activeView?: "nightsheet" | "grimoire";
+    onviewchange?: (view: "nightsheet" | "grimoire") => void;
+    isFullscreen?: boolean;
+    ontogglefullscreen?: () => void;
   } = $props();
 
   const viewingRound = $derived(rounds[viewingRoundIndex]);
@@ -31,7 +40,7 @@
   const canGoForward = $derived(viewingRoundIndex < rounds.length - 1);
 </script>
 
-<div class="rounded-lg border border-border bg-surface p-4">
+<div class="no-print rounded-lg border border-border bg-surface p-4">
   <div class="flex items-center justify-between gap-4">
     <!-- Round display with arrow navigation -->
     <div>
@@ -101,24 +110,90 @@
       {/if}
     </div>
 
-    <!-- Action buttons (only when viewing current round) -->
-    {#if isViewingCurrent}
-      <div class="flex items-center gap-2">
-        <button
-          onclick={onadvance}
-          class="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-400"
-        >
-          Finish Night
-        </button>
-        <button
-          onclick={onend}
-          class="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950/30"
-        >
-          End Game
-        </button>
-      </div>
-    {:else}
-      <span class="text-sm text-muted italic">Viewing past round</span>
-    {/if}
+    <!-- Right side: view toggle + actions -->
+    <div class="flex items-center gap-3">
+      <!-- View toggle: Night Sheet / Grimoire + Fullscreen -->
+      {#if onviewchange}
+        <div class="flex items-center gap-1.5">
+          <div class="flex gap-1 rounded-lg bg-element p-1">
+            <button
+              onclick={() => onviewchange?.("nightsheet")}
+              class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors {activeView ===
+              'nightsheet'
+                ? 'bg-surface text-primary shadow-sm'
+                : 'text-secondary hover:text-medium'}"
+            >
+              Night Sheet
+            </button>
+            <button
+              onclick={() => onviewchange?.("grimoire")}
+              class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors {activeView ===
+              'grimoire'
+                ? 'bg-surface text-primary shadow-sm'
+                : 'text-secondary hover:text-medium'}"
+            >
+              Grimoire
+            </button>
+          </div>
+          {#if ontogglefullscreen}
+            <button
+              onclick={ontogglefullscreen}
+              class="rounded-lg border border-border p-2 text-secondary transition-colors hover:bg-hover hover:text-medium"
+              title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            >
+              {#if isFullscreen}
+                <svg
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
+                  />
+                </svg>
+              {:else}
+                <svg
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
+                  />
+                </svg>
+              {/if}
+            </button>
+          {/if}
+        </div>
+      {/if}
+
+      <!-- Action buttons (only when viewing current round) -->
+      {#if isViewingCurrent}
+        <div class="flex items-center gap-2">
+          <button
+            onclick={onadvance}
+            class="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-400"
+          >
+            Finish Night
+          </button>
+          <button
+            onclick={onend}
+            class="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950/30"
+          >
+            End Game
+          </button>
+        </div>
+      {:else}
+        <span class="text-sm text-muted italic">Viewing past round</span>
+      {/if}
+    </div>
   </div>
 </div>

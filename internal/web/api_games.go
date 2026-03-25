@@ -79,6 +79,29 @@ func (h *ClockKeeperServiceHandler) CreateGame(ctx context.Context, req *connect
 
 	defaultName := fmt.Sprintf("%s - %s", script.Name, time.Now().Format("Jan 2"))
 
+	// Auto-populate fabled/lorics from the script, and select travellers up to travellerCount.
+	var scriptTravellers []string
+	var extraCharacters []string
+	for _, c := range h.registry.Characters(script.CharacterIds) {
+		switch c.Team {
+		case botc.TeamTraveller:
+			scriptTravellers = append(scriptTravellers, c.ID)
+		case botc.TeamFabled, botc.TeamLoric:
+			extraCharacters = append(extraCharacters, c.ID)
+		}
+	}
+	// Only select up to travellerCount travellers from the script.
+	selectedTravellers := scriptTravellers
+	if len(selectedTravellers) > travellerCount {
+		selectedTravellers = selectedTravellers[:travellerCount]
+	}
+	if selectedTravellers == nil {
+		selectedTravellers = []string{}
+	}
+	if extraCharacters == nil {
+		extraCharacters = []string{}
+	}
+
 	g, err := h.db.Game.Create().
 		SetName(defaultName).
 		SetUserID(u.ID).
@@ -86,7 +109,8 @@ func (h *ClockKeeperServiceHandler) CreateGame(ctx context.Context, req *connect
 		SetPlayerCount(int(req.Msg.PlayerCount)).
 		SetTravellerCount(travellerCount).
 		SetSelectedRoles([]string{}).
-		SetSelectedTravellers([]string{}).
+		SetSelectedTravellers(selectedTravellers).
+		SetExtraCharacters(extraCharacters).
 		SetState(game.StateSetup).
 		Save(ctx)
 	if err != nil {
@@ -129,22 +153,19 @@ func (h *ClockKeeperServiceHandler) RandomizeRoles(ctx context.Context, req *con
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 	}
 
-	// Pick random travellers if traveller_count > 0.
-	var selectedTravellers []string
-	if g.TravellerCount > 0 {
-		var travellers []*botc.Character
-		for _, c := range chars {
-			if c.Team == botc.TeamTraveller {
-				travellers = append(travellers, c)
-			}
+	// Select travellers from the script, capped to the game's traveller count.
+	var scriptTravellers []string
+	for _, c := range chars {
+		if c.Team == botc.TeamTraveller {
+			scriptTravellers = append(scriptTravellers, c.ID)
 		}
-		rand.Shuffle(len(travellers), func(i, j int) {
-			travellers[i], travellers[j] = travellers[j], travellers[i]
-		})
-		pick := min(g.TravellerCount, len(travellers))
-		for i := range pick {
-			selectedTravellers = append(selectedTravellers, travellers[i].ID)
-		}
+	}
+	rand.Shuffle(len(scriptTravellers), func(i, j int) {
+		scriptTravellers[i], scriptTravellers[j] = scriptTravellers[j], scriptTravellers[i]
+	})
+	selectedTravellers := scriptTravellers
+	if len(selectedTravellers) > g.TravellerCount {
+		selectedTravellers = selectedTravellers[:g.TravellerCount]
 	}
 	if selectedTravellers == nil {
 		selectedTravellers = []string{}
@@ -161,13 +182,13 @@ func (h *ClockKeeperServiceHandler) RandomizeRoles(ctx context.Context, req *con
 			CausedByName:  bs.CausedByName,
 			CharacterID:   bs.CharacterID,
 			CharacterName: bs.CharacterName,
+			Team:          string(bs.Team),
 		}
 	}
 
 	g, err = g.Update().
 		SetSelectedRoles(result.SelectedIDs).
 		SetSelectedTravellers(selectedTravellers).
-		SetTravellerCount(len(selectedTravellers)).
 		SetSelectedBluffs(bluffs).
 		SetBagSubstitutions(bagSubs).
 		Save(ctx)
@@ -207,7 +228,7 @@ func (h *ClockKeeperServiceHandler) UpdateGameRoles(ctx context.Context, req *co
 		existingBagSubs[i] = botc.BagSubstitution{
 			CausedByID:    bs.CausedByID,
 			CausedByName:  bs.CausedByName,
-			Team:          botc.Team(bs.CausedByID),
+			Team:          botc.Team(bs.Team),
 			CharacterID:   bs.CharacterID,
 			CharacterName: bs.CharacterName,
 		}
@@ -220,6 +241,7 @@ func (h *ClockKeeperServiceHandler) UpdateGameRoles(ctx context.Context, req *co
 			CausedByName:  bs.CausedByName,
 			CharacterID:   bs.CharacterID,
 			CharacterName: bs.CharacterName,
+			Team:          string(bs.Team),
 		}
 	}
 
@@ -397,6 +419,10 @@ func (h *ClockKeeperServiceHandler) UpdateGrimoireState(ctx context.Context, req
 		return nil, err
 	}
 
+	if g.State == game.StateCompleted {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("game is completed"))
+	}
+
 	positions := make(map[string]schema.GrimoirePosition, len(req.Msg.Positions))
 	for id, pos := range req.Msg.Positions {
 		positions[id] = schema.GrimoirePosition{X: float64(pos.X), Y: float64(pos.Y)}
@@ -407,6 +433,7 @@ func (h *ClockKeeperServiceHandler) UpdateGrimoireState(ctx context.Context, req
 		SetGrimoirePlayerNames(req.Msg.PlayerNames).
 		SetGrimoireGameNotes(req.Msg.GameNotes).
 		SetGrimoireRoundNotes(req.Msg.RoundNotes).
+		SetGrimoireReminderAttachments(req.Msg.ReminderAttachments).
 		Save(ctx)
 	if err != nil {
 		slog.Error("update grimoire state failed", "err", err)
@@ -431,6 +458,10 @@ func (h *ClockKeeperServiceHandler) UpdateCharacterAlignment(ctx context.Context
 
 	if g.State != game.StateInProgress {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("game is not in progress"))
+	}
+
+	if !isRoleInGame(g, req.Msg.RoleId) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("character %s is not in this game", req.Msg.RoleId))
 	}
 
 	alignment := req.Msg.Alignment
@@ -535,6 +566,7 @@ func (h *ClockKeeperServiceHandler) UpdateBagSubstitutions(ctx context.Context, 
 			CausedByName:  causedBy.Name,
 			CharacterID:   bs.CharacterId,
 			CharacterName: char.Name,
+			Team:          string(botc.BagTeamForCharacter(bs.CausedById)),
 		}
 	}
 
@@ -566,7 +598,7 @@ func (h *ClockKeeperServiceHandler) GetSetupChecklist(ctx context.Context, req *
 		bagSubs = append(bagSubs, botc.BagSubstitution{
 			CausedByID:    bs.CausedByID,
 			CausedByName:  bs.CausedByName,
-			Team:          botc.Team(bs.CausedByID), // Not used in checklist; only names matter.
+			Team:          botc.Team(bs.Team),
 			CharacterID:   bs.CharacterID,
 			CharacterName: bs.CharacterName,
 		})
@@ -581,6 +613,8 @@ func (h *ClockKeeperServiceHandler) GetSetupChecklist(ctx context.Context, req *
 			Title:          s.Title,
 			Description:    s.Description,
 			RequiresAction: s.RequiresAction,
+			CharacterIds:   s.CharacterIDs,
+			Editions:       s.Editions,
 		}
 	}
 

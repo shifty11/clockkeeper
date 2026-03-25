@@ -55,6 +55,8 @@ type Game struct {
 	GrimoireRoundNotes map[string]string `json:"grimoire_round_notes,omitempty"`
 	// BagSubstitutions holds the value of the "bag_substitutions" field.
 	BagSubstitutions []schema.GameBagSubstitution `json:"bag_substitutions,omitempty"`
+	// GrimoireReminderAttachments holds the value of the "grimoire_reminder_attachments" field.
+	GrimoireReminderAttachments map[string]string `json:"grimoire_reminder_attachments,omitempty"`
 	// State holds the value of the "state" field.
 	State game.State `json:"state,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -112,7 +114,7 @@ func (*Game) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case game.FieldSelectedRoles, game.FieldSelectedTravellers, game.FieldExtraCharacters, game.FieldSelectedBluffs, game.FieldTravellerAlignments, game.FieldGrimoirePositions, game.FieldGrimoirePlayerNames, game.FieldGrimoireGameNotes, game.FieldGrimoireRoundNotes, game.FieldBagSubstitutions:
+		case game.FieldSelectedRoles, game.FieldSelectedTravellers, game.FieldExtraCharacters, game.FieldSelectedBluffs, game.FieldTravellerAlignments, game.FieldGrimoirePositions, game.FieldGrimoirePlayerNames, game.FieldGrimoireGameNotes, game.FieldGrimoireRoundNotes, game.FieldBagSubstitutions, game.FieldGrimoireReminderAttachments:
 			values[i] = new([]byte)
 		case game.FieldID, game.FieldUserID, game.FieldScriptID, game.FieldPlayerCount, game.FieldTravellerCount:
 			values[i] = new(sql.NullInt64)
@@ -263,6 +265,14 @@ func (_m *Game) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field bag_substitutions: %w", err)
 				}
 			}
+		case game.FieldGrimoireReminderAttachments:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field grimoire_reminder_attachments", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.GrimoireReminderAttachments); err != nil {
+					return fmt.Errorf("unmarshal field grimoire_reminder_attachments: %w", err)
+				}
+			}
 		case game.FieldState:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field state", values[i])
@@ -370,6 +380,9 @@ func (_m *Game) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("bag_substitutions=")
 	builder.WriteString(fmt.Sprintf("%v", _m.BagSubstitutions))
+	builder.WriteString(", ")
+	builder.WriteString("grimoire_reminder_attachments=")
+	builder.WriteString(fmt.Sprintf("%v", _m.GrimoireReminderAttachments))
 	builder.WriteString(", ")
 	builder.WriteString("state=")
 	builder.WriteString(fmt.Sprintf("%v", _m.State))

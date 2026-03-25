@@ -25,7 +25,7 @@ func TestGenerateSetupChecklist_BasicSteps(t *testing.T) {
 	assert.Contains(t, stepIDs, "bag_tokens")
 	assert.Contains(t, stepIDs, "distribute_tokens")
 	assert.Contains(t, stepIDs, "collect_tokens")
-	assert.Contains(t, stepIDs, "begin_night")
+	assert.NotContains(t, stepIDs, "begin_night")
 }
 
 func TestGenerateSetupChecklist_WithReminders(t *testing.T) {
@@ -86,9 +86,18 @@ func TestGenerateSetupChecklist_WithBagSubstitutions(t *testing.T) {
 		stepIDs[i] = s.ID
 	}
 
-	// Should have both a setup step and a bag substitution step for Drunk.
+	// Setup and bag steps should be merged into one step for Drunk.
 	assert.Contains(t, stepIDs, "setup_mod_drunk")
-	assert.Contains(t, stepIDs, "bag_sub_drunk")
+	assert.NotContains(t, stepIDs, "bag_sub_drunk") // merged into setup_mod_drunk
+
+	// The setup step should contain the bag substitution info.
+	for _, s := range steps {
+		if s.ID == "setup_mod_drunk" {
+			assert.Contains(t, s.Description, "Chef")
+			assert.Contains(t, s.Description, "Drunk")
+			break
+		}
+	}
 
 	// Token list should show "Chef (for Drunk)" instead of just "Drunk".
 	for _, s := range steps {
@@ -113,6 +122,6 @@ func TestGenerateSetupChecklist_Empty(t *testing.T) {
 	assert.Contains(t, stepIDs, "bag_tokens")
 	assert.Contains(t, stepIDs, "distribute_tokens")
 	assert.Contains(t, stepIDs, "collect_tokens")
-	assert.Contains(t, stepIDs, "begin_night")
+	assert.NotContains(t, stepIDs, "begin_night")
 	assert.NotContains(t, stepIDs, "prepare_reminders")
 }

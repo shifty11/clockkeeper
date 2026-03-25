@@ -50,6 +50,8 @@ const (
 	FieldGrimoireRoundNotes = "grimoire_round_notes"
 	// FieldBagSubstitutions holds the string denoting the bag_substitutions field in the database.
 	FieldBagSubstitutions = "bag_substitutions"
+	// FieldGrimoireReminderAttachments holds the string denoting the grimoire_reminder_attachments field in the database.
+	FieldGrimoireReminderAttachments = "grimoire_reminder_attachments"
 	// FieldState holds the string denoting the state field in the database.
 	FieldState = "state"
 	// EdgeOwner holds the string denoting the owner edge name in mutations.
@@ -103,6 +105,7 @@ var Columns = []string{
 	FieldGrimoireGameNotes,
 	FieldGrimoireRoundNotes,
 	FieldBagSubstitutions,
+	FieldGrimoireReminderAttachments,
 	FieldState,
 }
 
@@ -147,6 +150,8 @@ var (
 	DefaultGrimoireRoundNotes map[string]string
 	// DefaultBagSubstitutions holds the default value on creation for the "bag_substitutions" field.
 	DefaultBagSubstitutions []schema.GameBagSubstitution
+	// DefaultGrimoireReminderAttachments holds the default value on creation for the "grimoire_reminder_attachments" field.
+	DefaultGrimoireReminderAttachments map[string]string
 )
 
 // State defines the type for the "state" enum field.

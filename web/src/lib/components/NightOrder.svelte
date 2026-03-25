@@ -262,6 +262,65 @@
     if (align === "evil") return "_e";
     return iconSuffix(originalTeam);
   }
+
+  // Determine the default alignment for a team (what it is without override).
+  function defaultAlignmentForTeam(
+    team: number,
+  ): "good" | "evil" | undefined {
+    if (team === Team.TOWNSFOLK || team === Team.OUTSIDER) return "good";
+    if (team === Team.MINION || team === Team.DEMON) return "evil";
+    return undefined; // Travellers, Fabled, Loric
+  }
+
+  // Cycle alignment: clicking advances to the next state.
+  // For characters with a default: default → opposite → default (toggle opposite)
+  // For travellers (no default): undefined → good → evil → undefined
+  function cycleAlignment(entryId: string, team: number) {
+    const current = alignments?.get(entryId);
+    const defaultAlign = defaultAlignmentForTeam(team);
+
+    let next: string;
+    if (defaultAlign === undefined) {
+      // Traveller/Fabled/Loric: undefined → good → evil → undefined
+      if (!current) next = "good";
+      else if (current === "good") next = "evil";
+      else next = ""; // back to undefined
+    } else {
+      // Has default: no override → opposite → clear
+      if (!current) next = defaultAlign === "good" ? "evil" : "good";
+      else next = ""; // clear override, back to default
+    }
+    onalignment?.(entryId, next);
+  }
+
+  // Get display label/color for current effective alignment.
+  function alignmentDisplay(
+    entryId: string,
+    team: number,
+  ): { label: string; colorClass: string } {
+    const override = alignments?.get(entryId);
+    const defaultAlign = defaultAlignmentForTeam(team);
+    const effective = override || defaultAlign;
+
+    if (effective === "good") {
+      return {
+        label: "G",
+        colorClass: override
+          ? "text-blue-500"
+          : "text-muted",
+      };
+    }
+    if (effective === "evil") {
+      return {
+        label: "E",
+        colorClass: override
+          ? "text-red-500"
+          : "text-muted",
+      };
+    }
+    // Undefined alignment (traveller with no override)
+    return { label: "?", colorClass: "text-muted" };
+  }
 </script>
 
 <div class="space-y-4">
@@ -750,35 +809,13 @@
                   </button>
                 {/if}
                 {#if onalignment}
+                  {@const display = alignmentDisplay(entry.id, entry.team ?? 0)}
                   <button
-                    onclick={() =>
-                      onalignment?.(
-                        entry.id,
-                        alignments?.get(entry.id) === "good" ? "" : "good",
-                      )}
-                    class="rounded p-1 text-xs font-bold transition-colors hover:bg-hover {alignments?.get(
-                      entry.id,
-                    ) === 'good'
-                      ? 'text-blue-500'
-                      : 'text-muted hover:text-blue-500'}"
-                    title="Good"
-                    aria-label="Toggle good alignment for {entry.name}"
-                    >G</button
-                  >
-                  <button
-                    onclick={() =>
-                      onalignment?.(
-                        entry.id,
-                        alignments?.get(entry.id) === "evil" ? "" : "evil",
-                      )}
-                    class="rounded p-1 text-xs font-bold transition-colors hover:bg-hover {alignments?.get(
-                      entry.id,
-                    ) === 'evil'
-                      ? 'text-red-500'
-                      : 'text-muted hover:text-red-500'}"
-                    title="Evil"
-                    aria-label="Toggle evil alignment for {entry.name}"
-                    >E</button
+                    onclick={() => cycleAlignment(entry.id, entry.team ?? 0)}
+                    class="rounded p-1 text-xs font-bold transition-colors hover:bg-hover {display.colorClass}"
+                    title="Change alignment"
+                    aria-label="Cycle alignment for {entry.name}"
+                    >{display.label}</button
                   >
                 {/if}
                 <a

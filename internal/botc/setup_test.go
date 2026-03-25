@@ -564,9 +564,8 @@ func TestRandomizeRoles_HuntsmanAddsDamsel(t *testing.T) {
 		if hasHuntsman {
 			foundHuntsman = true
 			// Damsel should be in the selected roles.
-			// It may already be there as an outsider, or it may need special handling.
-			// The companion logic replaces a townsfolk with the companion — but Damsel
-			// is an outsider, not a townsfolk. Let's just verify it's present.
+			// It may already be there as the randomly picked outsider, or the
+			// companion logic replaces an outsider with Damsel (matching her team).
 			assert.Contains(t, result.SelectedIDs, "damsel",
 				"Damsel should be present when Huntsman is selected")
 		}

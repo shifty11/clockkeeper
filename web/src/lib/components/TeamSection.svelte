@@ -21,6 +21,7 @@
     onalignmentchange,
     bagSubstitutions,
     onbagsubchange,
+    onpreview,
   }: {
     team: Team;
     characters: Character[];
@@ -38,6 +39,7 @@
       { characterId: string; characterName: string }
     >;
     onbagsubchange?: (causedById: string) => void;
+    onpreview?: (character: Character) => void;
   } = $props();
 
   // TeamSection uses different gradient weights (500) for Traveller header, no dark variant.
@@ -95,6 +97,7 @@
             onbagsubchange={onbagsubchange
               ? () => onbagsubchange(char.id)
               : undefined}
+            onpreview={onpreview ? () => onpreview(char) : undefined}
           />
         </button>
       {:else}
@@ -110,6 +113,7 @@
           onbagsubchange={onbagsubchange
             ? () => onbagsubchange(char.id)
             : undefined}
+          onpreview={onpreview ? () => onpreview(char) : undefined}
         />
       {/if}
     {/each}

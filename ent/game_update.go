@@ -261,6 +261,18 @@ func (_u *GameUpdate) ClearBagSubstitutions() *GameUpdate {
 	return _u
 }
 
+// SetGrimoireReminderAttachments sets the "grimoire_reminder_attachments" field.
+func (_u *GameUpdate) SetGrimoireReminderAttachments(v map[string]string) *GameUpdate {
+	_u.mutation.SetGrimoireReminderAttachments(v)
+	return _u
+}
+
+// ClearGrimoireReminderAttachments clears the value of the "grimoire_reminder_attachments" field.
+func (_u *GameUpdate) ClearGrimoireReminderAttachments() *GameUpdate {
+	_u.mutation.ClearGrimoireReminderAttachments()
+	return _u
+}
+
 // SetState sets the "state" field.
 func (_u *GameUpdate) SetState(v game.State) *GameUpdate {
 	_u.mutation.SetState(v)
@@ -514,6 +526,12 @@ func (_u *GameUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.BagSubstitutionsCleared() {
 		_spec.ClearField(game.FieldBagSubstitutions, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.GrimoireReminderAttachments(); ok {
+		_spec.SetField(game.FieldGrimoireReminderAttachments, field.TypeJSON, value)
+	}
+	if _u.mutation.GrimoireReminderAttachmentsCleared() {
+		_spec.ClearField(game.FieldGrimoireReminderAttachments, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.State(); ok {
 		_spec.SetField(game.FieldState, field.TypeEnum, value)
@@ -869,6 +887,18 @@ func (_u *GameUpdateOne) ClearBagSubstitutions() *GameUpdateOne {
 	return _u
 }
 
+// SetGrimoireReminderAttachments sets the "grimoire_reminder_attachments" field.
+func (_u *GameUpdateOne) SetGrimoireReminderAttachments(v map[string]string) *GameUpdateOne {
+	_u.mutation.SetGrimoireReminderAttachments(v)
+	return _u
+}
+
+// ClearGrimoireReminderAttachments clears the value of the "grimoire_reminder_attachments" field.
+func (_u *GameUpdateOne) ClearGrimoireReminderAttachments() *GameUpdateOne {
+	_u.mutation.ClearGrimoireReminderAttachments()
+	return _u
+}
+
 // SetState sets the "state" field.
 func (_u *GameUpdateOne) SetState(v game.State) *GameUpdateOne {
 	_u.mutation.SetState(v)
@@ -1152,6 +1182,12 @@ func (_u *GameUpdateOne) sqlSave(ctx context.Context) (_node *Game, err error) {
 	}
 	if _u.mutation.BagSubstitutionsCleared() {
 		_spec.ClearField(game.FieldBagSubstitutions, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.GrimoireReminderAttachments(); ok {
+		_spec.SetField(game.FieldGrimoireReminderAttachments, field.TypeJSON, value)
+	}
+	if _u.mutation.GrimoireReminderAttachmentsCleared() {
+		_spec.ClearField(game.FieldGrimoireReminderAttachments, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.State(); ok {
 		_spec.SetField(game.FieldState, field.TypeEnum, value)

@@ -115,6 +115,7 @@ func bagSubstitutionsToProto(subs []schema.GameBagSubstitution) []*clockkeeperv1
 			CausedByName:  s.CausedByName,
 			CharacterId:   s.CharacterID,
 			CharacterName: s.CharacterName,
+			Team:          s.Team,
 		}
 	}
 	return result
@@ -261,6 +262,9 @@ func entGameToProto(g *ent.Game, registry *botc.Registry) *clockkeeperv1.Game {
 	}
 	if len(g.GrimoireRoundNotes) > 0 {
 		proto.GrimoireRoundNotes = g.GrimoireRoundNotes
+	}
+	if len(g.GrimoireReminderAttachments) > 0 {
+		proto.GrimoireReminderAttachments = g.GrimoireReminderAttachments
 	}
 
 	// Populate play_state from eager-loaded phases+deaths.

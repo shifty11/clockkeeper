@@ -1,16 +1,23 @@
 <script lang="ts">
   import { Team } from "~/lib/gen/clockkeeper/v1/clockkeeper_pb";
-  import { teamCardColors, goodColors, evilColors } from "~/lib/team-styles";
+  import {
+    teamCardColors,
+    goodColors,
+    evilColors,
+    teamDataAttr,
+  } from "~/lib/team-styles";
   import type { GrimoireReminder } from "./types";
 
   let {
     reminder,
     zoom,
     onmove,
+    ondragmove,
   }: {
     reminder: GrimoireReminder;
     zoom: number;
     onmove?: (x: number, y: number) => void;
+    ondragmove?: (x: number, y: number) => void;
   } = $props();
 
   // Effective alignment for icon/color (alignment override takes priority)
@@ -42,6 +49,8 @@
       : (teamCardColors[reminder.team] ?? "border-border bg-surface-alt"),
   );
 
+  const isAttached = $derived(!!reminder.attachedTo);
+
   let dragging = $state(false);
   let dragStartX = $state(0);
   let dragStartY = $state(0);
@@ -63,6 +72,7 @@
     if (!dragging) return;
     offsetX = (e.clientX - dragStartX) / zoom;
     offsetY = (e.clientY - dragStartY) / zoom;
+    ondragmove?.(reminder.x + offsetX, reminder.y + offsetY);
   }
 
   function onPointerUp() {
@@ -88,19 +98,20 @@
   tabindex="0"
 >
   <div
-    class="card-slate flex h-16 w-16 flex-col items-center justify-center rounded-full border-2 p-1 {colorClass}"
+    class="card-slate token-bezel-sm flex h-16 w-16 flex-col items-center justify-center rounded-full p-0.5 {colorClass} {isAttached && !dragging ? 'ring-2 ring-primary/20' : ''}"
+    data-team={teamDataAttr[reminder.team] ?? ""}
   >
     {#if !imgError && reminder.edition}
       <img
         src={iconUrl}
         alt={reminder.characterName}
-        class="h-8 w-8 shrink-0 rounded-full"
+        class="h-10 w-10 shrink-0 drop-shadow-sm"
         onerror={() => (imgError = true)}
         draggable="false"
       />
     {:else}
       <div
-        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-element text-xs text-secondary"
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-element text-sm text-secondary"
       >
         {reminder.characterName.charAt(0)}
       </div>

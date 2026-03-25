@@ -3,6 +3,12 @@
   import type { GrimoirePlayer, GrimoireReminder } from "./types";
   import GrimoirePlayerToken from "./GrimoirePlayerToken.svelte";
   import GrimoireReminderToken from "./GrimoireReminderToken.svelte";
+  import {
+    ATTACH_THRESHOLD,
+    DETACH_THRESHOLD,
+    angleFromPosition,
+    distanceBetween,
+  } from "./layout";
 
   let {
     players,
@@ -10,6 +16,8 @@
     roundLabel = "Round",
     onplayermove,
     onremindermove,
+    onreminderattach,
+    onreminderdetach,
     onplayerrename,
     onplayertoggledeath,
     onplayergamenote,
@@ -21,6 +29,12 @@
     roundLabel?: string;
     onplayermove?: (id: string, x: number, y: number) => void;
     onremindermove?: (id: string, x: number, y: number) => void;
+    onreminderattach?: (
+      reminderId: string,
+      playerId: string,
+      angle: number,
+    ) => void;
+    onreminderdetach?: (reminderId: string) => void;
     onplayerrename?: (id: string, name: string) => void;
     onplayertoggledeath?: (id: string) => void;
     onplayergamenote?: (id: string, note: string) => void;
@@ -31,7 +45,7 @@
   let panX = $state(0);
   let panY = $state(0);
   let zoom = $state(1);
-  let showNotes = $state(false);
+  let showNotes = $state(true);
 
   let isPanning = $state(false);
   let panStartX = $state(0);
@@ -45,12 +59,80 @@
 
   let canvasEl: HTMLDivElement;
 
+  // Track which player is being highlighted as an attach target during reminder drag
+  let attachPreviewPlayerId = $state<string | null>(null);
+
   onMount(() => {
     if (!canvasEl) return;
     const rect = canvasEl.getBoundingClientRect();
     panX = rect.width / 2;
     panY = rect.height / 2;
   });
+
+  function findNearestPlayer(
+    x: number,
+    y: number,
+    threshold: number,
+  ): GrimoirePlayer | null {
+    let nearest: GrimoirePlayer | null = null;
+    let nearestDist = threshold;
+    for (const p of players) {
+      const dist = distanceBetween(x, y, p.x, p.y);
+      if (dist < nearestDist) {
+        nearest = p;
+        nearestDist = dist;
+      }
+    }
+    return nearest;
+  }
+
+  function handleReminderMoveEnd(
+    reminderId: string,
+    x: number,
+    y: number,
+  ) {
+    const reminder = reminders.find((r) => r.id === reminderId);
+    const wasAttached = reminder?.attachedTo;
+
+    if (wasAttached) {
+      const player = players.find((p) => p.id === wasAttached);
+      const nearPlayer = findNearestPlayer(x, y, ATTACH_THRESHOLD);
+
+      if (nearPlayer && nearPlayer.id !== wasAttached) {
+        // Dropped onto a different player — reattach there
+        const angle = angleFromPosition(x, y, nearPlayer.x, nearPlayer.y);
+        onreminderattach?.(reminderId, nearPlayer.id, angle);
+      } else if (player) {
+        const dist = distanceBetween(x, y, player.x, player.y);
+        if (dist > DETACH_THRESHOLD) {
+          onreminderdetach?.(reminderId);
+          onremindermove?.(reminderId, x, y);
+        } else {
+          // Reposition along orbit — compute new angle
+          const angle = angleFromPosition(x, y, player.x, player.y);
+          onreminderattach?.(reminderId, wasAttached, angle);
+        }
+      } else {
+        onreminderdetach?.(reminderId);
+        onremindermove?.(reminderId, x, y);
+      }
+    } else {
+      // Check if dropped near a player to attach
+      const nearPlayer = findNearestPlayer(x, y, ATTACH_THRESHOLD);
+      if (nearPlayer) {
+        const angle = angleFromPosition(x, y, nearPlayer.x, nearPlayer.y);
+        onreminderattach?.(reminderId, nearPlayer.id, angle);
+      } else {
+        onremindermove?.(reminderId, x, y);
+      }
+    }
+    attachPreviewPlayerId = null;
+  }
+
+  function handleReminderDragMove(x: number, y: number) {
+    const nearPlayer = findNearestPlayer(x, y, ATTACH_THRESHOLD);
+    attachPreviewPlayerId = nearPlayer?.id ?? null;
+  }
 
   function handlePointerDown(e: PointerEvent) {
     pointers.set(e.pointerId, e);
@@ -91,8 +173,10 @@
 
         // Zoom toward pinch center
         const rect = canvasEl.getBoundingClientRect();
-        const centerX = (pts[0].clientX + pts[1].clientX) / 2 - rect.left;
-        const centerY = (pts[0].clientY + pts[1].clientY) / 2 - rect.top;
+        const centerX =
+          (pts[0].clientX + pts[1].clientX) / 2 - rect.left;
+        const centerY =
+          (pts[0].clientY + pts[1].clientY) / 2 - rect.top;
         panX = centerX - (centerX - panX) * (newZoom / zoom);
         panY = centerY - (centerY - panY) * (newZoom / zoom);
         zoom = newZoom;
@@ -172,7 +256,8 @@
       <GrimoireReminderToken
         {reminder}
         {zoom}
-        onmove={(x, y) => onremindermove?.(reminder.id, x, y)}
+        onmove={(x: number, y: number) => handleReminderMoveEnd(reminder.id, x, y)}
+        ondragmove={(x: number, y: number) => handleReminderDragMove(x, y)}
       />
     {/each}
     {#each players as player (player.id)}
@@ -181,12 +266,14 @@
         {zoom}
         {roundLabel}
         {showNotes}
-        onmove={(x, y) => onplayermove?.(player.id, x, y)}
-        onrename={(name) => onplayerrename?.(player.id, name)}
+        highlightAttach={attachPreviewPlayerId === player.id}
+        onmove={(x: number, y: number) => onplayermove?.(player.id, x, y)}
+        onrename={(name: string) => onplayerrename?.(player.id, name)}
         ontoggledeath={() => onplayertoggledeath?.(player.id)}
-        ongamenote={(note) => onplayergamenote?.(player.id, note)}
-        onroundnote={(note) => onplayerroundnote?.(player.id, note)}
-        onalignment={(alignment) => onplayeralignment?.(player.id, alignment)}
+        ongamenote={(note: string) => onplayergamenote?.(player.id, note)}
+        onroundnote={(note: string) => onplayerroundnote?.(player.id, note)}
+        onalignment={(alignment: string) =>
+          onplayeralignment?.(player.id, alignment)}
       />
     {/each}
   </div>

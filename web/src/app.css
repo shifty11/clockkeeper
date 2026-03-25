@@ -194,6 +194,67 @@
   --color-info-text: #a5b4fc;
 }
 
+/* Physical game token bezel effect */
+.token-bezel {
+  border-width: 3px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 0 2px 4px rgba(255, 255, 255, 0.25),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.dark .token-bezel,
+:is([data-theme="tavern"], [data-theme="crypt"]) .token-bezel {
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0 2px 4px rgba(255, 255, 255, 0.08),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.token-bezel-drag {
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.15),
+    inset 0 2px 4px rgba(255, 255, 255, 0.25),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.dark .token-bezel-drag,
+:is([data-theme="tavern"], [data-theme="crypt"]) .token-bezel-drag {
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 2px 4px rgba(255, 255, 255, 0.08),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.token-bezel-sm {
+  border-width: 2px;
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.dark .token-bezel-sm,
+:is([data-theme="tavern"], [data-theme="crypt"]) .token-bezel-sm {
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    inset 0 1px 2px rgba(255, 255, 255, 0.06),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.token-bezel-dead {
+  border-width: 3px;
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.08),
+    inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
 /* Team-specific slate textures — tavern */
 [data-theme="tavern"] .card-slate[data-team="townsfolk"] {
   background-image: url("/card-townsfolk-slate.webp");
