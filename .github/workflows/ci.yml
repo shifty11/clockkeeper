@@ -110,3 +110,4 @@ jobs:
 
       - name: Build binary
         run: task build
+
